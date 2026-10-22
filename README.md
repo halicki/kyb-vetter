@@ -32,6 +32,7 @@ uv run pre-commit install     # lint/format/type-check on commit
 uv run pytest                 # unit tests (never call real government APIs)
 uv run ruff check . && uv run ruff format --check .
 uv run ty check
+uv run tach check && uv run tach check-external   # module boundaries, see ADR-0008
 ```
 
 Tests that reach real endpoints are marked `live` and excluded by default:

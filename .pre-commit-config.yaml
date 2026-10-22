@@ -31,3 +31,9 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+      - id: tach-external
+        name: tach check-external
+        entry: uv run --frozen tach check-external
+        language: system
+        types_or: [python, toml]
+        pass_filenames: false

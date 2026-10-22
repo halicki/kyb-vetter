@@ -20,6 +20,7 @@ Read `SPEC.md` and `docs/adr/README.md` before any non-trivial task.
 
 ## Hard rules
 - Business logic only in `packages/core`. `apps/*` are thin adapters.
+  Import direction `apps -> core` only, enforced by tach (ADR-0008).
 - Tests never call real government APIs. Mock HTTP with `respx`. Live tests
   carry `@pytest.mark.live` and are excluded by default.
 - The product name is configured, not hard-coded (ADR-0004). Never write
@@ -36,6 +37,7 @@ Read `SPEC.md` and `docs/adr/README.md` before any non-trivial task.
 uv sync --all-packages
 uv run ruff check . && uv run ruff format --check .
 uv run ty check
+uv run tach check && uv run tach check-external
 uv run pytest
 uv run pre-commit run --all-files
 ```

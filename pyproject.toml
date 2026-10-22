@@ -103,18 +103,25 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
 # ---------------------------------------------------------------- tach
-# Module boundaries. Dependency direction is one-way: apps -> core.
-# core imports nothing from apps; apps never import each other.
+# Module boundaries (ADR-0008). Two checks, two scopes:
+#   tach check-external  cross-package direction (apps -> core, never the reverse,
+#                        apps never import each other). Derived from each member's
+#                        [project].dependencies - no second source of truth here.
+#   tach check           boundaries *inside* a package. Each member has its own
+#                        pyproject.toml, so tach treats it as a separate
+#                        distribution and `tach check` never sees cross-package
+#                        imports; `depends_on` below is intentionally empty.
 [tool.tach]
 source_roots = ["packages/core/src", "apps/mcp/src", "apps/api/src", "apps/worker/src"]
 exclude = ["**/tests", "**/__pycache__", ".venv"]
-exact = false                       # flip to true once apps actually import core (scaffold is empty)
+exact = true                        # every declared `depends_on` must be used
 forbid_circular_dependencies = true
 ignore_type_checking_imports = true # `if TYPE_CHECKING:` imports are not runtime coupling
 
 [tool.tach.rules]
 unused_ignore_directives = "error"
 require_ignore_directive_reasons = "error"
+unused_external_dependencies = "warn"  # declared-but-unused deps; "error" once core has real code
 
 [[tool.tach.modules]]
 path = "kyb_vetter_core"
@@ -122,12 +129,12 @@ depends_on = []
 
 [[tool.tach.modules]]
 path = "kyb_vetter_mcp"
-depends_on = ["kyb_vetter_core"]
+depends_on = []
 
 [[tool.tach.modules]]
 path = "kyb_vetter_api"
-depends_on = ["kyb_vetter_core"]
+depends_on = []
 
 [[tool.tach.modules]]
 path = "kyb_vetter_worker"
-depends_on = ["kyb_vetter_core"]
+depends_on = []

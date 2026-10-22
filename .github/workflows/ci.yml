@@ -35,7 +35,7 @@ jobs:
         run: uv run ty check
 
       - name: Module boundaries
-        run: uv run tach check
+        run: uv run tach check && uv run tach check-external
 
       - name: Test
         run: uv run pytest

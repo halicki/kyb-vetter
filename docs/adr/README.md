@@ -13,6 +13,7 @@ acceptance - supersede with a new ADR instead.
 | [0005](0005-gcp-region-and-project.md) | GCP, region `europe-west1`, project created by Terraform | Accepted |
 | [0006](0006-testing-strategy.md) | Tests never hit government APIs; `live` marker | Accepted |
 | [0007](0007-ci-github-actions.md) | CI on GitHub Actions with uv | Accepted |
+| [0008](0008-module-boundaries-tach.md) | Module boundaries enforced with tach | Accepted |
 
 ## Pending decisions
 
