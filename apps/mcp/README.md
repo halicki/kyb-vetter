@@ -107,7 +107,7 @@ configured, every real NIP comes back as not on the white list, and only the
 ## Hosted (Streamable HTTP)
 
 ```sh
-uv run python -m kyb_vetter_mcp http        # 0.0.0.0:$PORT (default 8080), /mcp and /healthz
+uv run python -m kyb_vetter_mcp http        # 0.0.0.0:$PORT (default 8080), /mcp and /health
 npx -y @modelcontextprotocol/inspector --cli http://localhost:8080/mcp --transport http --method tools/list
 ```
 

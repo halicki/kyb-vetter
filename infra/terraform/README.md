@@ -67,11 +67,17 @@ Set them with `gh variable set NAME --body "$(terraform -chdir=... output -raw .
 
 ## Calling the dev service
 
-The service has no public invoker until OAuth lands (M6). Call it with an identity token:
+The service has no public invoker until OAuth lands (M6). Cloud Run accepts ID tokens whose
+audience is the service URL; plain `gcloud auth print-identity-token` for a user account is
+rejected when gcloud runs with a non-default OAuth client. Mint the token by impersonating the
+deployer service account (admins hold `roles/iam.serviceAccountTokenCreator` on it):
 
 ```sh
 URL=$(terraform -chdir=infra/terraform/envs/dev output -raw service_uri)
-curl -H "Authorization: Bearer $(gcloud auth print-identity-token)" "$URL/healthz"
-npx -y @modelcontextprotocol/inspector --cli "$URL/mcp" --transport http \
-  --header "Authorization: Bearer $(gcloud auth print-identity-token)" --method tools/list
+SA=$(terraform -chdir=infra/terraform/envs/dev output -raw deployer_service_account)
+TOK=$(gcloud auth print-identity-token --impersonate-service-account="$SA" --audiences="$URL")
+curl -H "Authorization: Bearer $TOK" "$URL/health"
 ```
+
+The MCP Inspector CLI starts its own OAuth flow on 401, so for scripted checks use the Python
+SDK client with an `Authorization` header (see `apps/mcp/README.md`).

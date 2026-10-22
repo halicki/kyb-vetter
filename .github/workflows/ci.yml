@@ -114,7 +114,17 @@ jobs:
           service: ${{ vars.GCP_SERVICE }}
           image: ${{ env.IMAGE }}:${{ github.sha }}
 
+      - id: id_token
+        name: Mint an ID token for the service
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+          token_format: id_token
+          id_token_audience: ${{ steps.deploy.outputs.url }}
+          id_token_include_email: true
+
       - name: Smoke test
         run: |
-          curl -fsS -H "Authorization: Bearer $(gcloud auth print-identity-token --impersonate-service-account="${{ vars.GCP_DEPLOYER_SA }}" --audiences="${{ steps.deploy.outputs.url }}")" \
-            "${{ steps.deploy.outputs.url }}/healthz"
+          curl -fsS -H "Authorization: Bearer ${{ steps.id_token.outputs.id_token }}" \
+            "${{ steps.deploy.outputs.url }}/health"

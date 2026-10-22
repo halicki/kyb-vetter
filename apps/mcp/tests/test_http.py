@@ -40,7 +40,7 @@ async def hosted(settings: Settings, base_url: str = BASE) -> AsyncGenerator[htt
 
 async def test_healthz_reports_name_and_storage_mode(settings: Settings) -> None:
     async with hosted(settings) as http:
-        response = await http.get("/healthz")
+        response = await http.get("/health")
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok", "name": "unit-test-connector", "persistent": False}
@@ -92,5 +92,5 @@ def test_allowed_hosts_include_domain_loopback_and_extras(monkeypatch: pytest.Mo
 async def test_host_check_can_be_disabled_behind_a_platform(settings: Settings) -> None:
     relaxed = settings.model_copy(update={"domain": "mcp.example.test", "host_check": False})
     async with hosted(relaxed, base_url="http://anything.a.run.app") as http:
-        response = await http.get("/healthz", headers={"Host": "anything.a.run.app"})
+        response = await http.get("/health", headers={"Host": "anything.a.run.app"})
     assert response.status_code == 200

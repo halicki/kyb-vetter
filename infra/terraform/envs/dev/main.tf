@@ -61,6 +61,7 @@ module "github_wif" {
   project_name                 = var.project_name
   github_repo                  = var.github_repo
   runtime_service_account_name = module.run.runtime_service_account_name
+  token_creator_members        = var.invoker_members
 }
 
 module "budget" {

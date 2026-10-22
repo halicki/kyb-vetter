@@ -37,7 +37,7 @@ created by Terraform too.
   `invoker_members` from tfvars. `APP_MF_BASE_URL` points at the ministry test
   host so dev can never consume the production white-list quota.
 - **Hosted transport.** `python -m kyb_vetter_mcp http` serves the SDK's
-  Starlette app (stateless, JSON responses) plus `/healthz`. DNS-rebinding
+  Starlette app (stateless, JSON responses) plus `/health` (`/healthz` is intercepted by Google Front End on Cloud Run). DNS-rebinding
   protection (Host allow-list) is on for local runs and off on Cloud Run
   (`APP_HOST_CHECK=false`): the platform terminates TLS on its own hostnames,
   and the legacy `*.a.run.app` URL carries a hash that cannot be allow-listed
@@ -52,7 +52,7 @@ created by Terraform too.
 
 - Bootstrap state must be backed up by the owner; losing it means importing
   the project and bucket (both deterministic names).
-- The first CI deploy replaces the placeholder image; until then `/healthz`
+- The first CI deploy replaces the placeholder image; until then `/health`
   returns the placeholder's page.
 - A prod environment is a copy of `envs/dev` with its own tfvars and backend
   file (M8).

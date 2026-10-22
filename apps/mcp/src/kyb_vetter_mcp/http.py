@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from kyb_vetter_core.config import Settings
 
 MCP_PATH = "/mcp"
-HEALTH_PATH = "/healthz"
+HEALTH_PATH = "/health"  # not /healthz: Google Front End intercepts that exact path on Cloud Run
 
 
 def allowed_hosts(settings: Settings) -> list[str]:
