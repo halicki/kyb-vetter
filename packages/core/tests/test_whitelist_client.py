@@ -58,6 +58,7 @@ async def test_status_returns_vat_status_with_receipt(
     assert result.status is VatStatus.ACTIVE
     assert result.receipt.request_id == "d2n10-84df1a1"
     assert result.receipt.source == "mf-whitelist-status"
+    assert result.receipt.host == "wl.example"
     assert route.calls.last.request.headers["User-Agent"].startswith("unit-test/")
 
 

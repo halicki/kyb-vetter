@@ -6,6 +6,7 @@ from kyb_vetter_core.config import (
     DEFAULT_PROJECT_NAME,
     Settings,
     get_settings,
+    registry_environment,
 )
 
 
@@ -68,3 +69,16 @@ def test_registry_settings_from_environment(monkeypatch: pytest.MonkeyPatch) -> 
         settings.mf_base_url == "https://wykazpodatnikowvat-test.mf.gov.pl"
     )  # trailing slash stripped
     assert settings.http_timeout_s == 2.5
+
+
+@pytest.mark.parametrize(
+    ("host", "expected"),
+    [
+        ("wykazpodatnikowvat.mf.gov.pl", "production"),
+        ("api-krs.ms.gov.pl", "production"),
+        ("wykazpodatnikowvat-test.mf.gov.pl", "test"),
+        ("mf.example", "test"),
+    ],
+)
+def test_registry_environment_knows_the_official_production_hosts(host: str, expected: str) -> None:
+    assert registry_environment(host) == expected

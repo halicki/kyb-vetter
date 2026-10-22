@@ -10,6 +10,13 @@ Thin adapter over `kyb_vetter_core` exposing two read-only tools:
 Both return structured content (JSON schema published in `tools/list`) and
 map failures to `ToolError` messages the model can act on (ADR-0011).
 
+Every receipt in `sources` carries the `host` that answered and an
+`environment` of `production` or `test`. Anything other than the official MF
+and KRS hosts is `test`: the Ministry's sandbox knows only synthetic
+companies, so a real NIP reported as "not found" there means nothing.
+`skipped` names the registers that were not consulted and why (CEIDG until
+a token is configured; KRS when the white list gives no KRS number).
+
 ## Run
 
 ```sh
@@ -92,7 +99,10 @@ Paths must be absolute; find `uv` with `which uv`.
 
 Restart Claude Desktop. Server stderr lands in
 `~/Library/Logs/Claude/mcp-server-<connector name>.log`. Drop the `env` block
-to query the production register (counts against the daily quota).
+to query the production register (counts against the daily quota). Name the
+entry after the host it points at (for example `...-test`): with the sandbox
+configured, every real NIP comes back as not on the white list, and only the
+`environment: test` field in the receipt tells you why.
 
 ## Tests
 

@@ -56,6 +56,7 @@ class WhiteListClient:
     def __init__(self, http: httpx.AsyncClient, settings: Settings) -> None:
         self._http = http
         self._base_url = settings.mf_base_url
+        self._host = httpx.URL(settings.mf_base_url).host
         self._timeout = settings.http_timeout_s
         self._headers = {"User-Agent": settings.user_agent, "Accept": "application/json"}
 
@@ -63,14 +64,16 @@ class WhiteListClient:
         """VAT status only (WL2 endpoint, high quota)."""
         clean_nip = validate_nip(nip)
         payload, raw = await self._get(f"/api2/status/nip/{clean_nip}", date or today_in_warsaw())
-        return self._parse(VatStatusResult.from_api, payload, raw=raw)
+        return self._parse(VatStatusResult.from_api, payload, raw=raw, host=self._host)
 
     async def search(self, nip: str, *, date: date | None = None) -> VatSearchResult:
         """Full white-list entry for one NIP; ``subject`` is ``None`` when unknown."""
         clean_nip = validate_nip(nip)
         queried = date or today_in_warsaw()
         payload, raw = await self._get(f"/api/search/nip/{clean_nip}", queried)
-        return self._parse(VatSearchResult.from_api, payload, raw=raw, queried_date=queried)
+        return self._parse(
+            VatSearchResult.from_api, payload, raw=raw, queried_date=queried, host=self._host
+        )
 
     async def search_many(self, nips: Sequence[str], *, date: date | None = None) -> VatBatchResult:
         """Full entries for up to 30 NIPs in one call (counts as one ``search`` query)."""
@@ -82,7 +85,9 @@ class WhiteListClient:
         clean = ",".join(validate_nip(n) for n in nips)
         queried = date or today_in_warsaw()
         payload, raw = await self._get(f"/api/search/nips/{clean}", queried)
-        return self._parse(VatBatchResult.from_api, payload, raw=raw, queried_date=queried)
+        return self._parse(
+            VatBatchResult.from_api, payload, raw=raw, queried_date=queried, host=self._host
+        )
 
     async def check(self, nip: str, account: str, *, date: date | None = None) -> BankAccountCheck:
         """Whether ``account`` is assigned to the active taxpayer ``nip`` as of ``date``."""
@@ -99,6 +104,7 @@ class WhiteListClient:
             account=clean_account,
             raw=raw,
             queried_date=queried,
+            host=self._host,
         )
 
     # --- internals ---------------------------------------------------------

@@ -14,9 +14,16 @@ from typing import TYPE_CHECKING, Literal, TypeIs
 
 from pydantic import BaseModel, ConfigDict
 
+from kyb_vetter_core.config import RegistryEnvironment, registry_environment
 from kyb_vetter_core.errors import NotFoundError, RegistryError
 from kyb_vetter_core.identifiers import normalize_nip
-from kyb_vetter_core.models import KrsExtract, RegistryReceipt, VatStatus, VatSubject
+from kyb_vetter_core.models import (
+    SOURCE_KRS,
+    KrsExtract,
+    RegistryReceipt,
+    VatStatus,
+    VatSubject,
+)
 from kyb_vetter_core.sanitize import clean_text
 
 if TYPE_CHECKING:
@@ -40,6 +47,9 @@ WARN_NAME_MISMATCH = "NAME_MISMATCH"
 WARN_NO_BANK_ACCOUNTS = "NO_BANK_ACCOUNTS"
 
 SOURCE_CEIDG = "ceidg"
+SKIPPED_CEIDG = "not configured"
+SKIPPED_KRS_NOT_IN_WHITELIST = "no KRS number to look up: NIP is not on the white list"
+SKIPPED_KRS_NO_NUMBER = "no KRS number on the white-list entry (not a registered company)"
 
 
 class _Model(BaseModel):
@@ -57,6 +67,9 @@ class SourceReceipt(_Model):
     """Proof of one registry call (see :class:`RegistryReceipt`)."""
 
     source: str
+    host: str
+    environment: RegistryEnvironment
+    """``test`` means a sandbox or mock answered: synthetic data, no legal value."""
     request_id: str | None
     request_datetime: str
     queried_date: date
@@ -66,6 +79,8 @@ class SourceReceipt(_Model):
     def from_receipt(cls, receipt: RegistryReceipt) -> SourceReceipt:
         return cls(
             source=receipt.source,
+            host=receipt.host,
+            environment=registry_environment(receipt.host),
             request_id=receipt.request_id,
             request_datetime=receipt.request_datetime.isoformat(),
             queried_date=receipt.queried_date,
@@ -228,9 +243,10 @@ class VerificationService:
         """White-list entry plus, when it names a KRS number, the current KRS extract."""
         search = await self._whitelist.search(nip, date=date)
         sources = [SourceReceipt.from_receipt(search.receipt)]
-        skipped = (SkippedSource(source=SOURCE_CEIDG, reason="not configured"),)
+        skipped = [SkippedSource(source=SOURCE_CEIDG, reason=SKIPPED_CEIDG)]
         subject = search.subject
         if subject is None:
+            skipped.append(SkippedSource(source=SOURCE_KRS, reason=SKIPPED_KRS_NOT_IN_WHITELIST))
             return CompanyVerification(
                 nip=normalize_nip(nip),
                 found=False,
@@ -242,7 +258,7 @@ class VerificationService:
                     ),
                 ),
                 sources=tuple(sources),
-                skipped=skipped,
+                skipped=tuple(skipped),
             )
 
         vat = VatSummary.from_subject(subject)
@@ -261,6 +277,8 @@ class VerificationService:
                         message="Company name on the VAT white list differs from the KRS entry.",
                     )
                 )
+        else:
+            skipped.append(SkippedSource(source=SOURCE_KRS, reason=SKIPPED_KRS_NO_NUMBER))
         if vat.account_count == 0:
             warnings.append(
                 VerificationWarning(
@@ -275,7 +293,7 @@ class VerificationService:
             krs=krs_summary,
             warnings=tuple(warnings),
             sources=tuple(sources),
-            skipped=skipped,
+            skipped=tuple(skipped),
         )
 
     async def check_bank_account(

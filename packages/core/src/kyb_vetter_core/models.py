@@ -57,15 +57,18 @@ class RegistryReceipt(_Model):
     """Proof of a registry call, kept with every result for the audit trail."""
 
     source: str
+    host: str
+    """Hostname that answered; tells the production register from its test environment."""
     request_id: str | None
     request_datetime: datetime
     queried_date: date
     response_sha256: str
 
     @classmethod
-    def from_whitelist(cls, result: Json, *, raw: bytes, queried_date: date) -> Self:
+    def from_whitelist(cls, result: Json, *, raw: bytes, queried_date: date, host: str) -> Self:
         return cls(
             source=SOURCE_WHITELIST,
+            host=host,
             request_id=result["requestId"],
             request_datetime=_parse_wl_datetime(result["requestDateTime"]),
             queried_date=queried_date,
@@ -171,12 +174,14 @@ class VatSearchResult(_Model):
     receipt: RegistryReceipt
 
     @classmethod
-    def from_api(cls, payload: Json, *, raw: bytes, queried_date: date) -> Self:
+    def from_api(cls, payload: Json, *, raw: bytes, queried_date: date, host: str) -> Self:
         result = payload["result"]
         subject = result.get("subject")
         return cls(
             subject=None if subject is None else VatSubject.from_api(subject),
-            receipt=RegistryReceipt.from_whitelist(result, raw=raw, queried_date=queried_date),
+            receipt=RegistryReceipt.from_whitelist(
+                result, raw=raw, queried_date=queried_date, host=host
+            ),
         )
 
 
@@ -190,7 +195,7 @@ class VatBatchResult(_Model):
     model_config = ConfigDict(frozen=True, extra="forbid", arbitrary_types_allowed=True)
 
     @classmethod
-    def from_api(cls, payload: Json, *, raw: bytes, queried_date: date) -> Self:
+    def from_api(cls, payload: Json, *, raw: bytes, queried_date: date, host: str) -> Self:
         result = payload["result"]
         subjects: dict[str, tuple[VatSubject, ...]] = {}
         errors: dict[str, RegistryError] = {}
@@ -208,7 +213,9 @@ class VatBatchResult(_Model):
         return cls(
             subjects=subjects,
             errors=errors,
-            receipt=RegistryReceipt.from_whitelist(result, raw=raw, queried_date=queried_date),
+            receipt=RegistryReceipt.from_whitelist(
+                result, raw=raw, queried_date=queried_date, host=host
+            ),
         )
 
 
@@ -220,13 +227,14 @@ class VatStatusResult(_Model):
     receipt: RegistryReceipt
 
     @classmethod
-    def from_api(cls, payload: Json, *, raw: bytes) -> Self:
+    def from_api(cls, payload: Json, *, raw: bytes, host: str) -> Self:
         subject = payload["result"]["subject"]
         return cls(
             nip=subject["nip"],
             status=VatStatus.from_api(subject["statusVat"]),
             receipt=RegistryReceipt(
                 source=SOURCE_WHITELIST_STATUS,
+                host=host,
                 request_id=subject["requestId"],
                 request_datetime=_parse_wl_datetime(subject["responseDateTime"]),
                 queried_date=_parse_wl_date(subject["requestedDate"]),
@@ -245,14 +253,16 @@ class BankAccountCheck(_Model):
 
     @classmethod
     def from_api(
-        cls, payload: Json, *, nip: str, account: str, raw: bytes, queried_date: date
+        cls, payload: Json, *, nip: str, account: str, raw: bytes, queried_date: date, host: str
     ) -> Self:
         result = payload["result"]
         return cls(
             nip=nip,
             account=account,
             assigned=result["accountAssigned"] == "TAK",
-            receipt=RegistryReceipt.from_whitelist(result, raw=raw, queried_date=queried_date),
+            receipt=RegistryReceipt.from_whitelist(
+                result, raw=raw, queried_date=queried_date, host=host
+            ),
         )
 
 
@@ -378,7 +388,7 @@ class KrsExtract(_Model):
     receipt: RegistryReceipt
 
     @classmethod
-    def from_api(cls, payload: Json, *, raw: bytes, fetched_at: datetime) -> Self:
+    def from_api(cls, payload: Json, *, raw: bytes, fetched_at: datetime, host: str) -> Self:
         odpis = payload["odpis"]
         header = odpis["naglowekA"]
         dane = odpis["dane"]
@@ -420,6 +430,7 @@ class KrsExtract(_Model):
             last_entry_number=header.get("numerOstatniegoWpisu"),
             receipt=RegistryReceipt(
                 source=SOURCE_KRS,
+                host=host,
                 request_id=None,
                 request_datetime=fetched_at,
                 queried_date=fetched_at.astimezone(WARSAW).date(),

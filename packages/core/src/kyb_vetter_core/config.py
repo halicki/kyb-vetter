@@ -11,6 +11,8 @@ variable names survive a rebrand too.
 
 from functools import lru_cache
 from importlib.metadata import version
+from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -26,6 +28,19 @@ DEFAULT_MF_BASE_URL = "https://wykazpodatnikowvat.mf.gov.pl"
 
 DEFAULT_KRS_BASE_URL = "https://api-krs.ms.gov.pl"
 """National Court Register open API."""
+
+RegistryEnvironment = Literal["production", "test"]
+
+PRODUCTION_REGISTRY_HOSTS: frozenset[str] = frozenset(
+    urlsplit(url).netloc for url in (DEFAULT_MF_BASE_URL, DEFAULT_KRS_BASE_URL)
+)
+"""Hosts whose answers are legally meaningful; everything else is a sandbox or a mock."""
+
+
+def registry_environment(host: str) -> RegistryEnvironment:
+    """Classify the host a registry answer came from, so results from the MF test
+    environment (synthetic companies) are never mistaken for the real register."""
+    return "production" if host in PRODUCTION_REGISTRY_HOSTS else "test"
 
 
 class Settings(BaseSettings):

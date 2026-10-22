@@ -14,7 +14,9 @@
     "structured": {
       "found": false,
       "vat": null,
-      "krs": null
+      "krs": null,
+      "sources.0.environment": "test",
+      "skipped.1.source": "krs"
     },
     "warnings": [
       "NOT_IN_WHITELIST"

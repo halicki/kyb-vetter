@@ -34,6 +34,7 @@ class KrsClient:
     def __init__(self, http: httpx.AsyncClient, settings: Settings) -> None:
         self._http = http
         self._base_url = settings.krs_base_url
+        self._host = httpx.URL(settings.krs_base_url).host
         self._timeout = settings.http_timeout_s
         self._headers = {"User-Agent": settings.user_agent, "Accept": "application/json"}
 
@@ -96,10 +97,9 @@ class KrsClient:
             raise RegistryUnavailableError("non-JSON body", source=SOURCE_KRS, http_status=status)
         return payload, raw
 
-    @staticmethod
-    def _parse(payload: Any, raw: bytes) -> KrsExtract:
+    def _parse(self, payload: Any, raw: bytes) -> KrsExtract:
         try:
-            return KrsExtract.from_api(payload, raw=raw, fetched_at=now_utc())
+            return KrsExtract.from_api(payload, raw=raw, fetched_at=now_utc(), host=self._host)
         except (KeyError, TypeError, ValueError) as exc:
             raise RegistryUnavailableError(
                 f"unexpected response shape: {exc!r}", source=SOURCE_KRS, http_status=200

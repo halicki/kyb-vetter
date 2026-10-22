@@ -110,6 +110,9 @@ async def test_verify_company_full_path_combines_whitelist_and_krs(
     assert result.sources[0].request_id == "d2n10-84df1a1"
     assert result.sources[1].request_id is None
     assert [s.source for s in result.skipped] == ["ceidg"]
+    assert result.sources[0].host == "mf.example"
+    assert result.sources[0].environment == "test"
+    assert result.sources[1].host == "krs.example"
 
 
 async def test_verify_company_formats_address_with_unit_number(
@@ -159,6 +162,8 @@ async def test_verify_company_not_in_whitelist(
     assert [w.code for w in result.warnings] == [WARN_NOT_IN_WHITELIST]
     assert not krs_route.called
     assert len(result.sources) == 1
+    assert [s.source for s in result.skipped] == ["ceidg", "krs"]
+    assert "white list" in result.skipped[1].reason
 
 
 @pytest.mark.parametrize(
@@ -200,6 +205,8 @@ async def test_verify_company_without_krs_number_skips_krs(
     assert result.krs is None
     assert result.warnings == ()
     assert not krs_route.called
+    assert [s.source for s in result.skipped] == ["ceidg", "krs"]
+    assert "KRS number" in result.skipped[1].reason
 
 
 async def test_verify_company_krs_not_found_is_a_warning(
@@ -365,6 +372,22 @@ async def test_check_bank_account_propagates_check_errors(
 
     with pytest.raises(DailyLimitExceededError):
         await service.check_bank_account(NIP, NRB)
+
+
+async def test_verify_company_marks_official_host_as_production(
+    monkeypatch: pytest.MonkeyPatch, mock_api: respx.MockRouter, fixture_json: Callable[[str], Any]
+) -> None:
+    monkeypatch.setattr(whitelist_module, "today_in_warsaw", lambda: TODAY)
+    settings = Settings(project_name="unit-test")
+    mock_api.get(f"{settings.mf_base_url}/api/search/nip/{NIP}").respond(
+        200, json=fixture_json("whitelist/search_missing")
+    )
+    async with httpx.AsyncClient() as http:
+        service = VerificationService(WhiteListClient(http, settings), KrsClient(http, settings))
+        result = await service.verify_company(NIP)
+
+    assert result.sources[0].host == "wykazpodatnikowvat.mf.gov.pl"
+    assert result.sources[0].environment == "production"
 
 
 # --- names_match ----------------------------------------------------------

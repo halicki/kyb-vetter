@@ -169,6 +169,7 @@ depends_on = []
 path = "kyb_vetter_core.verification"
 # clients are injected and imported only under TYPE_CHECKING (ignore_type_checking_imports)
 depends_on = [
+    "kyb_vetter_core.config",
     "kyb_vetter_core.errors",
     "kyb_vetter_core.identifiers",
     "kyb_vetter_core.models",

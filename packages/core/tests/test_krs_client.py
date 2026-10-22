@@ -57,6 +57,7 @@ async def test_get_extract_from_entrepreneurs_register(
     assert extract.name == "ORLEN SPÓŁKA AKCYJNA"
     assert extract.register_kind == "P"
     assert extract.receipt.request_datetime == NOW
+    assert extract.receipt.host == "krs.example"
     assert route.call_count == 1
     assert route.calls.last.request.headers["User-Agent"].startswith("unit-test/")
 

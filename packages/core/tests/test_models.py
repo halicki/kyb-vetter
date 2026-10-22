@@ -90,9 +90,12 @@ def test_vat_subject_from_api_keeps_business_fields_and_drops_pesel() -> None:
 
 def test_registry_receipt_from_whitelist_parses_request_metadata_and_hashes_raw_body() -> None:
     raw = b'{"result": {}}'
-    receipt = RegistryReceipt.from_whitelist(RESULT_META, raw=raw, queried_date=date(2019, 11, 19))
+    receipt = RegistryReceipt.from_whitelist(
+        RESULT_META, raw=raw, queried_date=date(2019, 11, 19), host="mf.example"
+    )
 
     assert receipt.source == "mf-whitelist"
+    assert receipt.host == "mf.example"
     assert receipt.request_id == "d2n10-84df1a1"
     assert receipt.request_datetime == datetime(2019, 11, 19, 14, 58, 49, tzinfo=WARSAW)
     assert receipt.queried_date == date(2019, 11, 19)
@@ -101,15 +104,22 @@ def test_registry_receipt_from_whitelist_parses_request_metadata_and_hashes_raw_
 
 def test_vat_search_result_with_subject_and_without() -> None:
     found = VatSearchResult.from_api(
-        {"result": {"subject": SUBJECT, **RESULT_META}}, raw=b"x", queried_date=date(2019, 11, 19)
+        {"result": {"subject": SUBJECT, **RESULT_META}},
+        raw=b"x",
+        queried_date=date(2019, 11, 19),
+        host="mf.example",
     )
     missing = VatSearchResult.from_api(
-        {"result": {"subject": None, **RESULT_META}}, raw=b"x", queried_date=date(2019, 11, 19)
+        {"result": {"subject": None, **RESULT_META}},
+        raw=b"x",
+        queried_date=date(2019, 11, 19),
+        host="mf.example",
     )
 
     assert found.subject is not None
     assert found.subject.nip == "1234563218"
     assert found.receipt.request_id == "d2n10-84df1a1"
+    assert found.receipt.host == "mf.example"
     assert missing.subject is None
 
 
@@ -127,7 +137,9 @@ def test_vat_batch_result_separates_subjects_from_per_identifier_errors() -> Non
             **RESULT_META,
         }
     }
-    batch = VatBatchResult.from_api(payload, raw=b"x", queried_date=date(2019, 11, 19))
+    batch = VatBatchResult.from_api(
+        payload, raw=b"x", queried_date=date(2019, 11, 19), host="mf.example"
+    )
 
     assert [s.nip for s in batch.subjects["1234563218"]] == ["1234563218"]
     assert batch.subjects["7740001454"] == ()
@@ -147,7 +159,7 @@ def test_vat_status_result_from_api2() -> None:
             }
         }
     }
-    result = VatStatusResult.from_api(payload, raw=b"x")
+    result = VatStatusResult.from_api(payload, raw=b"x", host="mf.example")
 
     assert result.nip == "1234563218"
     assert result.status is VatStatus.EXEMPT
@@ -155,6 +167,7 @@ def test_vat_status_result_from_api2() -> None:
     assert result.receipt.queried_date == date(2021, 10, 10)
     assert result.receipt.request_datetime == datetime(2019, 11, 21, 14, 58, 49, tzinfo=WARSAW)
     assert result.receipt.request_id == "d2n10-84df1a1"
+    assert result.receipt.host == "mf.example"
 
 
 def test_bank_account_check_parses_tak_nie() -> None:
@@ -164,6 +177,7 @@ def test_bank_account_check_parses_tak_nie() -> None:
         account="61109010140000071219812874",
         raw=b"x",
         queried_date=date(2019, 11, 19),
+        host="mf.example",
     )
     no = BankAccountCheck.from_api(
         {"result": {"accountAssigned": "NIE", **RESULT_META}},
@@ -171,17 +185,22 @@ def test_bank_account_check_parses_tak_nie() -> None:
         account="61109010140000071219812874",
         raw=b"x",
         queried_date=date(2019, 11, 19),
+        host="mf.example",
     )
     assert yes.assigned is True
     assert no.assigned is False
     assert yes.nip == "1234563218"
     assert yes.account == "61109010140000071219812874"
+    assert yes.receipt.host == "mf.example"
 
 
 def test_krs_extract_from_api_maps_the_current_extract() -> None:
     payload = json.loads((FIXTURES / "krs" / "0000028860.json").read_text())
     extract = KrsExtract.from_api(
-        payload, raw=b"x", fetched_at=datetime(2026, 10, 22, 19, 13, tzinfo=UTC)
+        payload,
+        raw=b"x",
+        fetched_at=datetime(2026, 10, 22, 19, 13, tzinfo=UTC),
+        host="krs.example",
     )
 
     assert extract.krs == "0000028860"
@@ -217,6 +236,7 @@ def test_krs_extract_from_api_maps_the_current_extract() -> None:
     assert extract.receipt.source == "krs"
     assert extract.receipt.request_id is None
     assert extract.receipt.queried_date == date(2026, 10, 22)
+    assert extract.receipt.host == "krs.example"
     dumped = extract.model_dump_json()
     assert "pesel" not in dumped
     assert "PROKURA" not in dumped
