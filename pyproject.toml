@@ -1,0 +1,118 @@
+# Workspace root. It is a *virtual* project (no [build-system]): it is never
+# built or installed, it only pins the shared toolchain and dev dependencies.
+# The product name lives in ONE place per layer (see docs/adr/0004):
+#   - this file: [project].name
+#   - code:      kyb_vetter_core.config.Settings.project_name
+#   - infra:     Terraform variable project_name
+[project]
+name = "kyb-vetter"
+version = "0.0.0"
+description = "KYB / counterparty verification for AI agents - Polish public registers (workspace root)"
+readme = "README.md"
+requires-python = ">=3.15"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.1",
+    "pyright>=1.1.414",
+    "pytest>=9.1",
+    "pytest-asyncio>=1.4",
+    "respx>=0.23",
+    "httpx>=0.28",
+    "pre-commit>=4.7",
+    "tach>=0.35.3",
+]
+
+[tool.uv.workspace]
+members = ["packages/*", "apps/*"]
+
+[tool.uv.sources]
+kyb-vetter-core = { workspace = true }
+
+# ---------------------------------------------------------------- ruff
+[tool.ruff]
+line-length = 100
+src = ["packages/*/src", "apps/*/src"]
+# target-version is inferred from requires-python.
+
+[tool.ruff.lint]
+select = [
+    "E", "W",    # pycodestyle
+    "F",         # pyflakes
+    "I",         # isort
+    "N",         # pep8-naming
+    "UP",        # pyupgrade
+    "B",         # flake8-bugbear
+    "S",         # flake8-bandit
+    "ASYNC",     # flake8-async
+    "T20",       # flake8-print: no print() - stdout is the MCP stdio channel
+    "PT",        # flake8-pytest-style
+    "SIM",       # flake8-simplify
+    "C4",        # flake8-comprehensions
+    "TID",       # flake8-tidy-imports
+    "TC",        # flake8-type-checking
+    "RUF",       # ruff-specific
+]
+ignore = [
+    "E501",      # line length is enforced by the formatter
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101", "S106"]   # assert and hard-coded test secrets are fine in tests
+
+[tool.ruff.lint.isort]
+known-first-party = ["kyb_vetter_core", "kyb_vetter_mcp", "kyb_vetter_api", "kyb_vetter_worker"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+# ---------------------------------------------------------------- pyright
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+include = ["packages", "apps"]
+exclude = ["**/.venv", "**/__pycache__"]
+typeCheckingMode = "standard"
+strict = ["packages/core/src"]
+reportMissingImports = "error"
+
+# ---------------------------------------------------------------- pytest
+[tool.pytest.ini_options]
+testpaths = ["packages", "apps"]
+addopts = "-ra --strict-markers --import-mode=importlib -m 'not live'"
+markers = [
+    "live: hits real external (government) APIs; disabled by default, run with `-m live`",
+]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+# ---------------------------------------------------------------- tach
+# Module boundaries. Dependency direction is one-way: apps -> core.
+# core imports nothing from apps; apps never import each other.
+[tool.tach]
+source_roots = ["packages/core/src", "apps/mcp/src", "apps/api/src", "apps/worker/src"]
+exclude = ["**/tests", "**/__pycache__", ".venv"]
+exact = false                       # flip to true once apps actually import core (scaffold is empty)
+forbid_circular_dependencies = true
+ignore_type_checking_imports = true # `if TYPE_CHECKING:` imports are not runtime coupling
+
+[tool.tach.rules]
+unused_ignore_directives = "error"
+require_ignore_directive_reasons = "error"
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core"
+depends_on = []
+
+[[tool.tach.modules]]
+path = "kyb_vetter_mcp"
+depends_on = ["kyb_vetter_core"]
+
+[[tool.tach.modules]]
+path = "kyb_vetter_api"
+depends_on = ["kyb_vetter_core"]
+
+[[tool.tach.modules]]
+path = "kyb_vetter_worker"
+depends_on = ["kyb_vetter_core"]

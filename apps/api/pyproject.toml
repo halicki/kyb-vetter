@@ -1,0 +1,12 @@
+[project]
+name = "kyb-vetter-api"
+version = "0.1.0"
+description = "REST API (FastAPI) - thin adapter over core"
+requires-python = ">=3.15"
+dependencies = [
+    "kyb-vetter-core",
+]
+
+[build-system]
+requires = ["uv_build>=0.13,<0.14"]
+build-backend = "uv_build"

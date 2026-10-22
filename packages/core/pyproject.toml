@@ -1,0 +1,13 @@
+[project]
+name = "kyb-vetter-core"
+version = "0.1.0"
+description = "Domain core: register clients, NIP/REGON/NRB validation, models, rate limits, audit"
+requires-python = ">=3.15"
+dependencies = [
+    "pydantic>=2.14",
+    "pydantic-settings>=2.16",
+]
+
+[build-system]
+requires = ["uv_build>=0.13,<0.14"]
+build-backend = "uv_build"
