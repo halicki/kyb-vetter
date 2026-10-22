@@ -23,7 +23,9 @@
       "found": true,
       "vat.status": "active",
       "krs.legal_form": "SPÓŁKA AKCYJNA",
-      "sources.0.request_id": "d2n10-84df1a1"
+      "sources.0.request_id": "d2n10-84df1a1",
+      "vat.account_numbers.0": "61109010140000071219812874",
+      "vat.accounts_truncated": false
     },
     "warnings": [],
     "forbidden_substrings": [

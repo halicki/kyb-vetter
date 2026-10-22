@@ -14,6 +14,7 @@ from kyb_vetter_core.config import Settings
 from kyb_vetter_core.errors import DailyLimitExceededError, InvalidNipError
 from kyb_vetter_core.models import VatStatus
 from kyb_vetter_core.verification import (
+    MAX_ACCOUNT_NUMBERS,
     WARN_KRS_NOT_FOUND,
     WARN_KRS_UNAVAILABLE,
     WARN_NAME_MISMATCH,
@@ -94,6 +95,7 @@ async def test_verify_company_full_path_combines_whitelist_and_krs(
     assert result.vat.name == "ORLEN S.A."
     assert result.vat.krs == ORLEN_KRS
     assert result.vat.account_count == 1
+    assert result.vat.account_numbers == (NRB,)
     assert result.krs is not None
     assert result.krs.name == "ORLEN SPÓŁKA AKCYJNA"
     assert result.krs.legal_form == "SPÓŁKA AKCYJNA"
@@ -129,6 +131,22 @@ async def test_verify_company_formats_address_with_unit_number(
 
     assert result.krs is not None
     assert result.krs.address == "CHEMIKÓW 7/3, 09-411 PŁOCK"
+
+
+async def test_verify_company_caps_listed_accounts_but_counts_all(
+    service: VerificationService, mock_api: respx.MockRouter, wl_found: dict[str, Any]
+) -> None:
+    accounts = [f"{i:026d}" for i in range(MAX_ACCOUNT_NUMBERS + 5)]
+    wl_found["result"]["subject"]["krs"] = None
+    wl_found["result"]["subject"]["accountNumbers"] = accounts
+    _mock_wl_search(mock_api, wl_found)
+
+    result = await service.verify_company(NIP)
+
+    assert result.vat is not None
+    assert result.vat.account_count == MAX_ACCOUNT_NUMBERS + 5
+    assert result.vat.account_numbers == tuple(accounts[:MAX_ACCOUNT_NUMBERS])
+    assert result.vat.accounts_truncated is True
 
 
 async def test_verify_company_uses_explicit_date(

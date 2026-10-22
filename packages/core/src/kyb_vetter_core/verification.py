@@ -47,6 +47,9 @@ WARN_NAME_MISMATCH = "NAME_MISMATCH"
 WARN_NO_BANK_ACCOUNTS = "NO_BANK_ACCOUNTS"
 
 SOURCE_CEIDG = "ceidg"
+
+MAX_ACCOUNT_NUMBERS = 20
+"""Accounts listed per company; `account_count` still reports the total (large firms have hundreds)."""
 SKIPPED_CEIDG = "not configured"
 SKIPPED_KRS_NOT_IN_WHITELIST = "no KRS number to look up: NIP is not on the white list"
 SKIPPED_KRS_NO_NUMBER = "no KRS number on the white-list entry (not a registered company)"
@@ -106,6 +109,8 @@ class VatSummary(_Model):
     removal_date: date | None
     restoration_date: date | None
     account_count: int
+    account_numbers: tuple[str, ...]
+    accounts_truncated: bool
     has_virtual_accounts: bool | None
 
     @classmethod
@@ -121,6 +126,8 @@ class VatSummary(_Model):
             removal_date=subject.removal_date,
             restoration_date=subject.restoration_date,
             account_count=len(subject.account_numbers),
+            account_numbers=subject.account_numbers[:MAX_ACCOUNT_NUMBERS],
+            accounts_truncated=len(subject.account_numbers) > MAX_ACCOUNT_NUMBERS,
             has_virtual_accounts=subject.has_virtual_accounts,
         )
 

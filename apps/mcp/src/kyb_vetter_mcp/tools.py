@@ -83,7 +83,8 @@ def register_tools(server: MCPServer[AppState], *, verify_name: str, check_name:
 
         Use when the user asks whether a counterparty is a legitimate, active VAT payer,
         wants its registered name/address, or needs a verification record. Returns a
-        condensed profile: VAT status, registry name and addresses, KRS details when
+        condensed profile: VAT status, registry name and addresses, registered bank
+        accounts (first 20; ``account_count`` is the total), KRS details when
         the company is a registered entity (legal form, seat, share capital, main
         activity, board with masked names), a list of warnings with stable codes
         (e.g. VAT_NOT_ACTIVE, NOT_IN_WHITELIST, KRS_NOT_FOUND, NAME_MISMATCH), and
