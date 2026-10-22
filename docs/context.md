@@ -43,3 +43,13 @@ Stable codes returned in `warnings[].code`; messages are free text for humans.
 | `KRS_UNAVAILABLE` | KRS API failed; VAT data returned alone |
 | `NAME_MISMATCH` | White-list name differs from KRS name after normalisation |
 | `NO_BANK_ACCOUNTS` | No accounts registered on the white list |
+
+## Quota buckets (from M3)
+
+| Bucket | Official limit / day / IP | Our threshold | Charged by |
+|--------|---------------------------|---------------|------------|
+| `wl_search` | 100 queries (batch of up to 30 NIPs = 1 query) | 90 | `verify_company` (cache miss) |
+| `wl_check` | 5 000 | 4 800 | `check_bank_account` (cache miss) |
+| `wl_status` | 50 000 | 45 000 | `check_bank_account` status lookup (1 h cache) |
+
+Days follow Europe/Warsaw. `verification_history` and cache hits cost nothing.

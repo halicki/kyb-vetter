@@ -23,7 +23,8 @@ acceptance - supersede with a new ADR instead.
 
 | Topic | Decide by | Notes |
 |-------|-----------|-------|
-| Database hosting: Cloud SQL vs Neon | M3/M4 | Compare cost, EU residency, complexity (connector, IAM auth, Terraform provider). |
 | Identity provider for MCP OAuth | M6 | Candidates: WorkOS AuthKit, Auth0, Stytch, Descope, Google Identity Platform. Criteria: MCP auth compliance (RFC 9728 PRM, CIMD, PKCE, refresh tokens), starting cost, EU data residency. |
 | Audit-log retention and GDPR policy | M8 | CEIDG data (natural persons) is never persisted; define retention for audit rows. |
 | MF rate-limit guard storage (Postgres vs in-memory) | M3 | Hosted server shares one IP; counters must survive restarts and multiple instances. Three counters: `status` (50k), `search` (100 queries, batch counted pessimistically as 30), `check` (5k). |
+| [0013](0013-persistence-and-quota-guard.md) | Persistence, quota guard, audit log and cache | Accepted |
+| [0014](0014-cloud-database-neon.md) | Cloud database: Neon over Cloud SQL | Accepted |

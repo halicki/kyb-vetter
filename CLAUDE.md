@@ -47,7 +47,8 @@ uv sync --all-packages
 uv run ruff check . && uv run ruff format --check .
 uv run ty check
 uv run tach check && uv run tach check-external
-uv run pytest                # unit tests + 100% coverage gate
+docker compose up -d db && export APP_TEST_DATABASE_URL=postgresql+asyncpg://app:app@localhost:5432/app
+uv run pytest                # unit tests + 100% coverage gate (db tests need the URL above)
 uv run pytest -m live --no-cov  # by hand only: MF test host + KRS
 uv run pre-commit run --all-files
 ```

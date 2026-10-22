@@ -27,3 +27,9 @@
 - `check_bank_account` makes two white-list calls (`check` + WL2 `status`); the quota guard in M3 must count them separately (5000/day and 50 000/day).
 - httpx logs request URLs (including NIPs) at INFO on stderr. Fine for local stdio; structured logging with redaction is an M8 item.
 - MCP Inspector CLI JSON-parses `--tool-arg` values, so an all-digit NIP becomes an integer. Documented in `apps/mcp/README.md`; consider accepting `int` input in the tool schema if real clients do the same.
+
+## Open since M3 (2026-10-22)
+
+- Batch `search_many` is counted as one `wl_search` query, per the ministry's wording ("100 zapytań o maksymalnie 30 podmiotów"); unconfirmed by observation.
+- Audit rows keep condensed results (company names, masked board). Retention/GDPR policy and a purge job are M8.
+- Neon pooler is transaction-mode PgBouncer; run Alembic against the direct endpoint (M4).
