@@ -3,9 +3,7 @@ name = "kyb-vetter-worker"
 version = "0.1.0"
 description = "Batch jobs (daily MF flat file, later sanctions lists) - thin adapter over core"
 requires-python = ">=3.15"
-dependencies = [
-    "kyb-vetter-core",
-]
+dependencies = []  # kyb-vetter-core is added when this app gains behaviour (ADR-0008)
 
 [build-system]
 requires = ["uv_build>=0.13,<0.14"]

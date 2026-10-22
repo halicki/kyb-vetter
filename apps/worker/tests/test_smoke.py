@@ -1,7 +1,5 @@
 import kyb_vetter_worker
-from kyb_vetter_core.config import Settings
 
 
-def test_package_imports_and_sees_core() -> None:
+def test_package_imports() -> None:
     assert kyb_vetter_worker.__version__
-    assert Settings().project_name

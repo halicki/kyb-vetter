@@ -61,6 +61,11 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S101", "S106", "TC"]   # asserts, test secrets and plain typing imports are fine in tests
+"evals/**" = ["S101", "ASYNC240"]  # scenario runner is a test; file reads are tiny JSON
+
+[tool.ruff.lint.flake8-type-checking]
+# pydantic reads field annotations at runtime, so their imports must not be deferred
+runtime-evaluated-base-classes = ["pydantic.BaseModel", "pydantic_settings.BaseSettings"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["kyb_vetter_core", "kyb_vetter_mcp", "kyb_vetter_api", "kyb_vetter_worker"]
@@ -95,10 +100,11 @@ strict-generic-narrowing = true
 
 # ---------------------------------------------------------------- pytest
 [tool.pytest.ini_options]
-testpaths = ["packages", "apps"]
+testpaths = ["packages", "apps", "evals"]
 addopts = "-ra --strict-markers --import-mode=importlib -m 'not live' --cov --cov-report=term-missing"
 markers = [
     "live: hits real external (government) APIs; disabled by default, run with `-m live`",
+    "eval: deterministic tool-behaviour scenarios from evals/scenarios (run by default)",
 ]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
@@ -109,6 +115,7 @@ asyncio_default_fixture_loop_scope = "function"
 [tool.coverage.run]
 source = ["packages/core/src", "apps/mcp/src", "apps/api/src", "apps/worker/src"]
 branch = true
+omit = ["*/__main__.py"]  # process entry points, exercised by hand (MCP Inspector)
 
 [tool.coverage.report]
 fail_under = 100
@@ -135,7 +142,7 @@ ignore_type_checking_imports = true # `if TYPE_CHECKING:` imports are not runtim
 [tool.tach.rules]
 unused_ignore_directives = "error"
 require_ignore_directive_reasons = "error"
-unused_external_dependencies = "warn"  # "error" once apps import core (M2); apps are empty shells until then
+unused_external_dependencies = "error"
 
 [[tool.tach.modules]]
 path = "kyb_vetter_core"
@@ -153,6 +160,20 @@ depends_on = []
 [[tool.tach.modules]]
 path = "kyb_vetter_core.identifiers"
 depends_on = ["kyb_vetter_core.errors"]
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.sanitize"
+depends_on = []
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.verification"
+# clients are injected and imported only under TYPE_CHECKING (ignore_type_checking_imports)
+depends_on = [
+    "kyb_vetter_core.errors",
+    "kyb_vetter_core.identifiers",
+    "kyb_vetter_core.models",
+    "kyb_vetter_core.sanitize",
+]
 
 [[tool.tach.modules]]
 path = "kyb_vetter_core.models"
