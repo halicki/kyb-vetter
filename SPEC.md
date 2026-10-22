@@ -96,3 +96,4 @@ Listy sankcyjne (MSWiA, skonsolidowana lista UE), lista ostrzeżeń KNF, raport 
 - Biała lista: API przeniesione 15.10.2026 na `https://wykazpodatnikowvat.mf.gov.pl` (test: `wykazpodatnikowvat-test.mf.gov.pl`); `wl-api.mf.gov.pl` działa tylko do 1.12.2026. Nowy endpoint WL2 `/api2/status/nip/{nip}` (limit 50 000/dzień) jest głównym źródłem statusu VAT (ADR-0009).
 - KRS: rejestr `P`, przy 404 próba `S` (ADR-0010).
 - TDD obowiązuje dla każdej funkcji w `core`; pokrycie 100% jest bramką w CI.
+- M2 (2026-10-22): evale deterministyczne w `evals/` (CI), bez LLM; `verify_company` zwraca skondensowany profil (ADR-0011/0012); serwer MCP przez `python -m kyb_vetter_mcp`.

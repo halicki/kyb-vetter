@@ -21,3 +21,9 @@
 ## Closed
 - (2026-10-22) Python 3.15 wheel availability: all compiled dependencies ship
   `cp315` wheels. See ADR-0002.
+
+## Open since M2 (2026-10-22)
+
+- `check_bank_account` makes two white-list calls (`check` + WL2 `status`); the quota guard in M3 must count them separately (5000/day and 50 000/day).
+- httpx logs request URLs (including NIPs) at INFO on stderr. Fine for local stdio; structured logging with redaction is an M8 item.
+- MCP Inspector CLI JSON-parses `--tool-arg` values, so an all-digit NIP becomes an integer. Documented in `apps/mcp/README.md`; consider accepting `int` input in the tool schema if real clients do the same.

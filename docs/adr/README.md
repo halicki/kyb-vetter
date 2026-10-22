@@ -14,6 +14,8 @@ acceptance - supersede with a new ADR instead.
 | [0006](0006-testing-strategy.md) | Tests never hit government APIs; `live` marker | Accepted |
 | [0007](0007-ci-github-actions.md) | CI on GitHub Actions with uv | Accepted |
 | [0009](0009-mf-whitelist-endpoints-and-hosts.md) | VAT white-list hosts (moved 2026-10-15) and endpoint strategy incl. WL2 status | Accepted |
+| [0011](0011-mcp-server-shape.md) | Shape of the MCP server: tools only, structured output, `ToolError` | Accepted |
+| [0012](0012-untrusted-registry-data.md) | Register data is untrusted input to the model | Accepted |
 | [0010](0010-register-client-design.md) | Register client design: local validation, injected httpx, no retries, receipts, data minimisation | Accepted |
 | [0008](0008-module-boundaries-tach.md) | Module boundaries enforced with tach | Accepted |
 

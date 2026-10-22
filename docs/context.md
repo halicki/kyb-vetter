@@ -28,3 +28,18 @@ from the code. Keep entries short; date them.
 - KRS API: no key, about 2 req/s, lookup only by KRS number (taken from the
   white list), persons anonymised, open-data licence allows reuse.
 - CEIDG: JWT bearer, data about natural persons (GDPR): pass-through only.
+
+## Warning codes (product vocabulary, from M2)
+
+Stable codes returned in `warnings[].code`; messages are free text for humans.
+
+| Code | Meaning |
+|------|---------|
+| `NOT_IN_WHITELIST` | NIP unknown to the VAT white list |
+| `VAT_NOT_ACTIVE` | VAT status is `exempt` or `not_registered` |
+| `VAT_REMOVED` | Entry has a removal date |
+| `VAT_STATUS_UNAVAILABLE` | WL2 status endpoint failed during `check_bank_account` |
+| `KRS_NOT_FOUND` | White list names a KRS number the register does not know (P and S) |
+| `KRS_UNAVAILABLE` | KRS API failed; VAT data returned alone |
+| `NAME_MISMATCH` | White-list name differs from KRS name after normalisation |
+| `NO_BANK_ACCOUNTS` | No accounts registered on the white list |
