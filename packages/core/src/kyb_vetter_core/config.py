@@ -66,6 +66,13 @@ class Settings(BaseSettings):
     database_url: str | None = None
     """SQLAlchemy async URL (``postgresql+asyncpg://...``). Unset = in-memory storage, not persistent."""
 
+    extra_allowed_hosts: list[str] = []
+    """Additional ``Host`` values accepted by the hosted transport (JSON list in APP_EXTRA_ALLOWED_HOSTS)."""
+
+    host_check: bool = True
+    """Reject requests whose ``Host`` is not allow-listed (DNS-rebinding protection). Off behind
+    a TLS-terminating platform such as Cloud Run, where the hostname is fixed by the platform."""
+
     @field_validator("mf_base_url", "krs_base_url")
     @classmethod
     def _strip_trailing_slash(cls, value: str) -> str:

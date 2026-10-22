@@ -104,6 +104,18 @@ entry after the host it points at (for example `...-test`): with the sandbox
 configured, every real NIP comes back as not on the white list, and only the
 `environment: test` field in the receipt tells you why.
 
+## Hosted (Streamable HTTP)
+
+```sh
+uv run python -m kyb_vetter_mcp http        # 0.0.0.0:$PORT (default 8080), /mcp and /healthz
+npx -y @modelcontextprotocol/inspector --cli http://localhost:8080/mcp --transport http --method tools/list
+```
+
+Stateless, JSON responses, DNS-rebinding protection on: accepted hosts are
+`localhost`, `127.0.0.1`, `APP_DOMAIN` and the JSON list in `APP_EXTRA_ALLOWED_HOSTS`.
+The container image (`Dockerfile` at the repository root) runs this mode; Cloud Run
+deployment is described in `infra/terraform/README.md`.
+
 ## Tests
 
 ```sh
