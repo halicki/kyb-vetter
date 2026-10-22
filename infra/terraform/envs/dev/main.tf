@@ -33,7 +33,12 @@ module "run" {
   krs_base_url                  = var.krs_base_url
   database_url_secret_id        = module.secrets.secret_ids["database-url"]
   database_url_direct_secret_id = module.secrets.secret_ids["database-url-direct"]
-  invoker_members               = var.invoker_members
+  # Administrators plus the CI deployer (smoke test after each roll-out). The deployer's e-mail is
+  # deterministic, which avoids a dependency cycle with module.github_wif.
+  invoker_members = concat(
+    var.invoker_members,
+    ["serviceAccount:${var.project_name}-deployer@${local.project_id}.iam.gserviceaccount.com"],
+  )
 }
 
 # The runtime SA is created in module.run; secrets need its email, run needs the secret ids:
