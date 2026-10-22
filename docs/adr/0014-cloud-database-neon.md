@@ -35,3 +35,15 @@ Secret Manager. Terraform uses the Neon provider next to the Google provider.
   migrations run against the direct (non-pooled) endpoint.
 - Revisit when sustained load makes an always-on instance cheaper or when
   an enterprise customer asks for Cloud SQL.
+
+## Provider note (2026-10-23)
+
+`kislerdm/neon` was archived on 2026-09-11, the day 0.18.0 shipped; the code
+moved to `neondatabase/terraform-provider-neon` (active, not yet on the
+registry). Both were verified with a create/destroy round-trip of a Free-plan
+project in Frankfurt. We pin `kislerdm/neon = 0.18.0` and will switch the
+`source` to `neondatabase/neon` once it is published. Alternatives checked:
+Aiven (partner provider, always-free tier, may power off idle services),
+Supabase (official provider, free projects pause after a week), Cloud SQL
+(~$8–10/month idle). Free-plan constraint baked into the module:
+`history_retention_seconds = 21600`.

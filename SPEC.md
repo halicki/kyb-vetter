@@ -98,3 +98,4 @@ Listy sankcyjne (MSWiA, skonsolidowana lista UE), lista ostrzeżeń KNF, raport 
 - TDD obowiązuje dla każdej funkcji w `core`; pokrycie 100% jest bramką w CI.
 - M2 (2026-10-22): evale deterministyczne w `evals/` (CI), bez LLM; `verify_company` zwraca skondensowany profil (ADR-0011/0012); serwer MCP przez `python -m kyb_vetter_mcp`.
 - M3 (2026-10-22): Postgres przez `APP_DATABASE_URL` (bez URL fallback in-memory dla stdio); testy DB na compose lokalnie i service container w CI; chmura: Neon (ADR-0014); cache per `(identyfikator, dzień)`; strażnik limitów 90/4800/45000 (ADR-0013).
+- M4 (2026-10-23): dev tylko przez IAM (bez `allUsers`) do M6; dev używa hosta testowego MF; Neon przez `kislerdm/neon` 0.18.0 do czasu publikacji `neondatabase/neon`; Terraform lokalnie, CI tylko roluje obraz (ADR-0015).

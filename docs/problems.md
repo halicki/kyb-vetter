@@ -33,3 +33,9 @@
 - Batch `search_many` is counted as one `wl_search` query, per the ministry's wording ("100 zapytań o maksymalnie 30 podmiotów"); unconfirmed by observation.
 - Audit rows keep condensed results (company names, masked board). Retention/GDPR policy and a purge job are M8.
 - Neon pooler is transaction-mode PgBouncer; run Alembic against the direct endpoint (M4).
+
+## Open since M4 (2026-10-23)
+
+- ADC quota project must point at a project with open billing, otherwise the GCS backend fails with `UserProjectAccountProblem`; documented in `infra/terraform/README.md`.
+- `neondatabase/neon` provider: check the registry each milestone and switch the `source` when published.
+- Host allow-listing is off on Cloud Run (`APP_HOST_CHECK=false`); revisit when a custom domain is attached in M6 (then allow-list the domain and turn the check back on).

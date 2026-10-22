@@ -28,3 +28,4 @@ acceptance - supersede with a new ADR instead.
 | MF rate-limit guard storage (Postgres vs in-memory) | M3 | Hosted server shares one IP; counters must survive restarts and multiple instances. Three counters: `status` (50k), `search` (100 queries, batch counted pessimistically as 30), `check` (5k). |
 | [0013](0013-persistence-and-quota-guard.md) | Persistence, quota guard, audit log and cache | Accepted |
 | [0014](0014-cloud-database-neon.md) | Cloud database: Neon over Cloud SQL | Accepted |
+| [0015](0015-infrastructure-dev.md) | Development infrastructure: two Terraform roots, keyless CI, image rolls | Accepted |
