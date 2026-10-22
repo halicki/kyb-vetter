@@ -19,6 +19,10 @@ Read `SPEC.md` and `docs/adr/README.md` before any non-trivial task.
   Decision / Consequences) and add them to the index.
 
 ## Hard rules
+- TDD for every function in `packages/core` (and by default everywhere):
+  write the failing test first, watch it fail, write the minimal code, watch
+  it pass, refactor. Coverage is a 100% gate (`fail_under = 100`); bootstrap
+  code in apps may carry `# pragma: no cover` with a reason.
 - Business logic only in `packages/core`. `apps/*` are thin adapters.
   Import direction `apps -> core` only, enforced by tach (ADR-0008).
 - Tests never call real government APIs. Mock HTTP with `respx`. Live tests
@@ -43,6 +47,7 @@ uv sync --all-packages
 uv run ruff check . && uv run ruff format --check .
 uv run ty check
 uv run tach check && uv run tach check-external
-uv run pytest
+uv run pytest                # unit tests + 100% coverage gate
+uv run pytest -m live --no-cov  # by hand only: MF test host + KRS
 uv run pre-commit run --all-files
 ```

@@ -1,6 +1,17 @@
 # Open and closed problems
 
 ## Open
+- (2026-10-22) MF flat-file specification (hash algorithm, virtual-account
+  masks, integrity check) could not be read from the official site (JS-only
+  page, PDF not text-extractable). Needed for milestone 5; try the PDF with a
+  proper extractor or the HTML spec on the registry site.
+- (2026-10-22) NRB routing-number check digit (8-digit `numer rozliczeniowy`)
+  algorithm not found in an official source; validation uses IBAN mod-97 only.
+- (2026-10-22) KRS API has no citable official documentation page
+  (`prs.ms.gov.pl/krs/openApi` renders client-side); behaviour recorded from
+  probing: 404/400 as RFC 7807, short numbers zero-padded server-side.
+- (2026-10-22) Whether a 30-NIP batch counts as 1 or 30 `search` queries is
+  undocumented; measure on the test host before M3.
 - (2026-10-22) `gcloud` auth token expired on the dev machine; `terraform`
   not installed. Both needed before milestone 4.
 - (2026-10-22) MCP SDK 2.3.0: server-side CIMD support unverified; tasks

@@ -36,7 +36,8 @@ uv run tach check && uv run tach check-external   # module boundaries, see ADR-0
 ```
 
 Tests that reach real endpoints are marked `live` and excluded by default:
-`uv run pytest -m live` runs them on purpose (mind the MF daily quota).
+`uv run pytest -m live --no-cov` runs them on purpose against the MF test host
+and KRS (mind the daily quotas). Unit tests enforce 100% coverage.
 
 ## Configuration
 
@@ -46,8 +47,12 @@ Environment variables, prefix `APP_` (see `kyb_vetter_core.config`):
 | ------------------ | ------------ | ----------------------------------------------- |
 | `APP_PROJECT_NAME` | `kyb-vetter` | product name used in strings and resource names |
 | `APP_DOMAIN`       | `localhost`  | public hostname of the hosted service           |
+| `APP_MF_BASE_URL`  | `https://wykazpodatnikowvat.mf.gov.pl` | VAT white-list API (test: `wykazpodatnikowvat-test.mf.gov.pl`) |
+| `APP_KRS_BASE_URL` | `https://api-krs.ms.gov.pl` | KRS open API |
+| `APP_HTTP_TIMEOUT_S` | `10` | per-request timeout for registry calls |
 
 ## Status
 
 Milestone 0 (repository skeleton, tooling, CI, initial ADRs) - done.
+Milestone 1 (identifier validation, white-list and KRS clients, domain models) - done.
 See `SPEC.md` for the milestone list.

@@ -16,10 +16,15 @@ from the code. Keep entries short; date them.
 
 ## Domain constraints (2026-10-22)
 
-- MF VAT white list: `search` 100 requests/day/IP, `check` 5000/day/IP;
-  exceeding blocks the IP until midnight. A hosted server shares one IP for
-  all users, so limits are an architectural concern. The daily flat file
-  (hashed NIP+account pairs) is the basis for offline account checks.
+- MF VAT white list (host `wykazpodatnikowvat.mf.gov.pl` since 2026-10-15):
+  `search` 100 queries/day/IP (up to 30 entities each), `check` 5000
+  entities/day/IP, WL2 `status` 50 000/day/IP; exceeding may block the IP
+  until midnight. A hosted server shares one IP for all users, so limits are
+  an architectural concern. The daily flat file (hashed NIP+account pairs) is
+  the basis for offline account checks.
+- The registry answers "as of a day" (`date` parameter, Polish local time)
+  and refreshes data once per working day, so `(nip, date)` responses are
+  stable and cacheable until the next refresh (cache arrives in M3).
 - KRS API: no key, about 2 req/s, lookup only by KRS number (taken from the
   white list), persons anonymised, open-data licence allows reuse.
 - CEIDG: JWT bearer, data about natural persons (GDPR): pass-through only.
