@@ -5,11 +5,13 @@ Budujemy produkt (docelowo firmę): hostowany serwer MCP + REST API do weryfikac
 Kod, docstringi, commity, README i ADR-y po angielsku. Ze mną rozmawiaj po polsku.
 
 ## Nazwa
+
 - Robocza nazwa projektu i repo: `kyb-vetter` (pakiety Pythona: `kyb_vetter_*`). Marka produktu NIE jest jeszcze ustalona.
 - Nazwa musi żyć w JEDNYM miejscu na warstwę: zmienna `project_name` w Terraformie (prefiks wszystkich zasobów GCP), jedna stała/konfiguracja w kodzie, nazwa w `pyproject.toml`. Nigdzie nie hardkoduj "kyb-vetter" w stringach, URL-ach ani nazwach zasobów — rebranding ma być zmianą kilku linijek.
 - Domena i nazwa connectora pochodzą z konfiguracji (zmienna `domain`), nie z kodu.
 
 ## Tryb pracy
+
 - Pracuj MILESTONE'AMI z listy niżej. Po każdym: STOP, pokaż co powstało, wyjaśnij 3–5 kluczowych decyzji (dlaczego, jakie alternatywy, koszty), czekaj na moje OK.
 - Decyzje architektoniczne zapisuj jako ADR w `docs/adr/` (krótkie: kontekst, decyzja, konsekwencje).
 - Na starcie zapytaj mnie o to, czego nie wiesz: projekt GCP / billing account, domena, wybór IdP, region (domyślnie europe-central2 — Warszawa).
@@ -18,6 +20,7 @@ Kod, docstringi, commity, README i ADR-y po angielsku. Ze mną rozmawiaj po pols
 - Przed użyciem jakiejkolwiek biblioteki/API sprawdź aktualną dokumentację zamiast polegać na pamięci (MCP Python SDK, specyfikacja MCP 2026-07-28, API rządowe, providery Terraform).
 
 ## Stack
+
 - Python: najnowszy stabilny (3.15). Sprawdź, czy wszystkie zależności mają wheele pod 3.15; jeśli nie — 3.14 i zapisz to w ADR.
 - Monorepo na uv workspaces. ruff, pyright (strict w core), pytest + pytest-asyncio + respx, pre-commit.
 - MCP: oficjalny Python SDK (FastMCP), zgodność ze specyfikacją 2026-07-28 (bezstanowy Streamable HTTP, `server/discover`). Sprawdź, czy SDK już ją wspiera, i opisz luki.
@@ -26,6 +29,7 @@ Kod, docstringi, commity, README i ADR-y po angielsku. Ze mną rozmawiaj po pols
 - Infra: GCP + Terraform. Cloud Run (service: MCP+API; job: worker), Artifact Registry, Secret Manager, Cloud Scheduler, GCS (także remote state Terraforma), Cloud Logging/Trace. CI/CD: GitHub Actions z Workload Identity Federation (zero kluczy service account w repo). Budżet i alert kosztów w Terraformie.
 
 ## Struktura (propozycja do weryfikacji)
+
 ```
 kyb-vetter/
   packages/core/      # domena: klienci rejestrów, walidacja NIP/REGON/NRB, modele, limity, audyt
@@ -37,9 +41,11 @@ kyb-vetter/
   docs/adr/
   SPEC.md             # ten plik
 ```
+
 Logika biznesowa żyje WYŁĄCZNIE w `core`. MCP i REST to cienkie adaptery.
 
 ## Źródła danych
+
 1. Biała lista VAT (MF), bez klucza: https://wl-api.mf.gov.pl (sprawdź środowisko testowe wl-test.mf.gov.pl).
    - search (/api/search/nip/{nip}, /api/search/nips/{lista do 30}) — 100 zapytań/dzień/IP.
    - check (/api/check/nip/{nip}/bank-account/{nrb}) — 5000/dzień.
@@ -50,6 +56,7 @@ Logika biznesowa żyje WYŁĄCZNIE w `core`. MCP i REST to cienkie adaptery.
 3. CEIDG (JDG): https://dane.biznes.gov.pl/api/ceidg/v3/firmy, JWT Bearer. To dane osób fizycznych → RODO. W MVP: tylko pass-through, ZERO zapisu w bazie, opcjonalne (bez tokena narzędzie działa i mówi, że CEIDG pominięto).
 
 ## Projekt narzędzi MCP
+
 - Tylko TOOLS (ChatGPT nie obsługuje prompts/resources z serwerów zdalnych). Wszystko tylko do odczytu.
 - Docstring = prompt dla modelu: kiedy użyć, co zwraca, ograniczenia. Zwracamy zwięzłe modele, nie surowy JSON z API.
 - Dane z rejestrów (nazwy firm, adresy) to NIEZAUFANE dane — nie mogą sterować modelem; testy prompt injection obowiązkowe.
@@ -57,12 +64,14 @@ Logika biznesowa żyje WYŁĄCZNIE w `core`. MCP i REST to cienkie adaptery.
 - Zero printów na stdout w trybie stdio.
 
 ## Auth
+
 - MCP: OAuth zgodnie ze specyfikacją MCP (Protected Resource Metadata RFC 9728, CIMD + DCR jako fallback, PKCE, refresh tokeny). NIE piszemy własnego serwera autoryzacji — porównaj zewnętrzne IdP (np. WorkOS AuthKit, Auth0, Stytch, Descope, Google Identity Platform) pod kątem: zgodność z MCP auth, koszt na start, EU data residency. ADR.
 - REST: klucze API per użytkownik (hashowane w bazie).
 - Rate limiting i limity per użytkownik niezależnie od limitów MF.
 - Wymagany publiczny TLS (Gemini Enterprise odrzuca self-signed).
 
 ## Milestone'y
+
 0. ADR-y startowe + szkielet monorepo `kyb-vetter` + tooling + CI (lint, typy, testy). Konfiguracja nazwy w jednym miejscu.
 1. Core: walidacja NIP/NRB (lokalnie, przed API — oszczędza limit), klient białej listy (search, check), klient KRS, modele domenowe, mapowanie błędów WL-1xx na błędy domenowe.
 2. Serwer MCP lokalnie (stdio) z `verify_company` i `check_bank_account` (na razie API check), instrukcja testu w MCP Inspector i Claude Desktop. Pierwsze evale.
@@ -74,9 +83,11 @@ Logika biznesowa żyje WYŁĄCZNIE w `core`. MCP i REST to cienkie adaptery.
 8. Hardening: strukturalne logi + tracing (OpenTelemetry), evale w CI, testy prompt injection, retencja danych w audycie (polityka RODO), środowisko prod w Terraformie.
 
 ## Backlog (NIE implementować bez mojej decyzji)
+
 Listy sankcyjne (MSWiA, skonsolidowana lista UE), lista ostrzeżeń KNF, raport KYB jako PDF, CEIDG z cache, płatności (Stripe), landing page, regulamin i polityka prywatności, docelowa marka i domena (rebranding z `kyb-vetter`), zgłoszenie do katalogów connectorów (Anthropic, OpenAI), interaktywne widgety (MCP Apps).
 
 ## Ustalenia (2026-10-22)
+
 - GCP: nowy projekt tworzony przez Terraform; billing account podany przed M4.
 - Domena: placeholder do M6.
 - Region: `europe-west1` (ADR-0005).
