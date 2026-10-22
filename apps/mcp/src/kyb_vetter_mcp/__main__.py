@@ -12,7 +12,9 @@ from kyb_vetter_mcp.server import build_server
 
 def main() -> None:
     logging.basicConfig(
-        stream=sys.stderr, level=logging.INFO, format="%(levelname)s %(name)s: %(message)s"
+        stream=sys.stderr,
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
     build_server(get_settings()).run(transport="stdio")
 
