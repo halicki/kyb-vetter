@@ -63,6 +63,7 @@ class RegistryReceipt(_Model):
     request_datetime: datetime
     queried_date: date
     response_sha256: str
+    from_cache: bool = False
 
     @classmethod
     def from_whitelist(cls, result: Json, *, raw: bytes, queried_date: date, host: str) -> Self:
@@ -74,6 +75,12 @@ class RegistryReceipt(_Model):
             queried_date=queried_date,
             response_sha256=sha256(raw).hexdigest(),
         )
+
+
+class ReceiptedModel(_Model):
+    """A registry result that carries the receipt of the call that produced it."""
+
+    receipt: RegistryReceipt
 
 
 # --- VAT white list -------------------------------------------------------
@@ -167,11 +174,10 @@ class VatSubject(_Model):
         )
 
 
-class VatSearchResult(_Model):
+class VatSearchResult(ReceiptedModel):
     """Result of ``/api/search/nip/{nip}``; ``subject`` is ``None`` when the NIP is unknown."""
 
     subject: VatSubject | None
-    receipt: RegistryReceipt
 
     @classmethod
     def from_api(cls, payload: Json, *, raw: bytes, queried_date: date, host: str) -> Self:
@@ -185,12 +191,11 @@ class VatSearchResult(_Model):
         )
 
 
-class VatBatchResult(_Model):
+class VatBatchResult(ReceiptedModel):
     """Result of ``/api/search/nips/{...}``: subjects per identifier, plus per-identifier errors."""
 
     subjects: Mapping[str, tuple[VatSubject, ...]]
     errors: Mapping[str, RegistryError]
-    receipt: RegistryReceipt
 
     model_config = ConfigDict(frozen=True, extra="forbid", arbitrary_types_allowed=True)
 
@@ -219,12 +224,11 @@ class VatBatchResult(_Model):
         )
 
 
-class VatStatusResult(_Model):
+class VatStatusResult(ReceiptedModel):
     """Result of the WL2 ``/api2/status/nip/{nip}`` endpoint (status only, high quota)."""
 
     nip: str
     status: VatStatus
-    receipt: RegistryReceipt
 
     @classmethod
     def from_api(cls, payload: Json, *, raw: bytes, host: str) -> Self:
@@ -243,13 +247,12 @@ class VatStatusResult(_Model):
         )
 
 
-class BankAccountCheck(_Model):
+class BankAccountCheck(ReceiptedModel):
     """Result of ``/api/check/nip/{nip}/bank-account/{nrb}``."""
 
     nip: str
     account: str
     assigned: bool
-    receipt: RegistryReceipt
 
     @classmethod
     def from_api(
@@ -365,7 +368,7 @@ class Activity(_Model):
         return cls(code=".".join(p for p in parts if p), description=data["opis"])
 
 
-class KrsExtract(_Model):
+class KrsExtract(ReceiptedModel):
     """Condensed current extract (``OdpisAktualny``) from the National Court Register."""
 
     krs: str
@@ -385,7 +388,6 @@ class KrsExtract(_Model):
     registration_date: date | None
     as_of: date
     last_entry_number: int | None
-    receipt: RegistryReceipt
 
     @classmethod
     def from_api(cls, payload: Json, *, raw: bytes, fetched_at: datetime, host: str) -> Self:

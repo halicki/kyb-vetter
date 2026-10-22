@@ -82,3 +82,10 @@ def test_registry_settings_from_environment(monkeypatch: pytest.MonkeyPatch) -> 
 )
 def test_registry_environment_knows_the_official_production_hosts(host: str, expected: str) -> None:
     assert registry_environment(host) == expected
+
+
+def test_database_url_is_optional(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("APP_DATABASE_URL", raising=False)
+    assert Settings().database_url is None
+    monkeypatch.setenv("APP_DATABASE_URL", "postgresql+asyncpg://app:app@localhost:5432/app")
+    assert Settings().database_url == "postgresql+asyncpg://app:app@localhost:5432/app"

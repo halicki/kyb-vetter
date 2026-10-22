@@ -1,11 +1,16 @@
 import json
 from collections.abc import Callable
+from datetime import date, timedelta
 from typing import Any
 
 import respx
 from mcp.types import TextContent
 
-from kyb_vetter_mcp.server import TOOL_CHECK_BANK_ACCOUNT, TOOL_VERIFY_COMPANY
+from kyb_vetter_mcp.server import (
+    TOOL_CHECK_BANK_ACCOUNT,
+    TOOL_VERIFICATION_HISTORY,
+    TOOL_VERIFY_COMPANY,
+)
 
 from .conftest import KRS, MF, NIP, NRB, ORLEN_KRS, ClientFactory
 
@@ -20,7 +25,11 @@ async def test_tools_are_listed_read_only_with_output_schema(mcp_client: ClientF
     async with mcp_client() as client:
         tools = {t.name: t for t in (await client.list_tools()).tools}
 
-        assert set(tools) == {TOOL_VERIFY_COMPANY, TOOL_CHECK_BANK_ACCOUNT}
+        assert set(tools) == {
+            TOOL_VERIFY_COMPANY,
+            TOOL_CHECK_BANK_ACCOUNT,
+            TOOL_VERIFICATION_HISTORY,
+        }
         for tool in tools.values():
             assert tool.annotations is not None
             assert tool.annotations.read_only_hint is True
@@ -188,3 +197,50 @@ async def test_check_bank_account_invalid_account_is_a_tool_error(
         assert isinstance(result.content[0], TextContent)
         assert "bank account" in result.content[0].text.lower()
         assert not route.called
+
+
+async def test_verification_history_tool_lists_past_calls(
+    mcp_client: ClientFactory, mock_api: respx.MockRouter, wl_found: dict[str, Any]
+) -> None:
+    wl_found["result"]["subject"]["krs"] = None
+    mock_api.get(f"{MF}/api/search/nip/{NIP}").respond(200, json=wl_found)
+    async with mcp_client() as client:
+        tools = {t.name for t in (await client.list_tools()).tools}
+        assert TOOL_VERIFICATION_HISTORY in tools
+
+        await client.call_tool(TOOL_VERIFY_COMPANY, {"nip": NIP})
+        result = await client.call_tool(TOOL_VERIFICATION_HISTORY, {"nip": NIP})
+
+    assert result.is_error is False
+    data = result.structured_content
+    assert data is not None
+    assert data["nip"] == NIP
+    assert data["persistent"] is False
+    assert [e["tool"] for e in data["entries"]] == [TOOL_VERIFY_COMPANY]
+    assert data["entries"][0]["request_ids"] == ["d2n10-84df1a1"]
+
+
+async def test_verification_history_rejects_invalid_nip(mcp_client: ClientFactory) -> None:
+    async with mcp_client() as client:
+        result = await client.call_tool(TOOL_VERIFICATION_HISTORY, {"nip": "1234567890"})
+    assert result.is_error is True
+
+
+async def test_quota_guard_refusal_is_explained_to_the_model(
+    mcp_client: ClientFactory, mock_api: respx.MockRouter, wl_found: dict[str, Any]
+) -> None:
+    wl_found["result"]["subject"]["krs"] = None
+    route = mock_api.get(f"{MF}/api/search/nip/{NIP}").respond(200, json=wl_found)
+    start = date(2020, 1, 1)
+    async with mcp_client() as client:
+        for i in range(90):  # distinct (nip, date) keys defeat the cache: 90 real calls = threshold
+            await client.call_tool(
+                TOOL_VERIFY_COMPANY, {"nip": NIP, "date": (start + timedelta(days=i)).isoformat()}
+            )
+        result = await client.call_tool(TOOL_VERIFY_COMPANY, {"nip": NIP, "date": "2021-06-01"})
+
+    assert route.call_count == 90
+    assert result.is_error is True
+    assert isinstance(result.content[0], TextContent)
+    assert "guard" in result.content[0].text.lower()
+    assert "midnight" in result.content[0].text.lower()

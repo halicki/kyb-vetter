@@ -13,9 +13,11 @@ from typing import TYPE_CHECKING
 import httpx
 from mcp.server import MCPServer
 
-from kyb_vetter_core.clients.krs import KrsClient
-from kyb_vetter_core.clients.whitelist import WhiteListClient
-from kyb_vetter_core.verification import VerificationService
+from kyb_vetter_core.assembly import build_verification_service
+from kyb_vetter_core.storage import open_stores
+
+# dataclass fields are evaluated at class creation: keep this import eager
+from kyb_vetter_core.verification import VerificationService  # noqa: TC001
 from kyb_vetter_mcp.tools import register_tools
 
 if TYPE_CHECKING:
@@ -25,6 +27,7 @@ if TYPE_CHECKING:
 
 TOOL_VERIFY_COMPANY = "verify_company"
 TOOL_CHECK_BANK_ACCOUNT = "check_bank_account"
+TOOL_VERIFICATION_HISTORY = "verification_history"
 
 INSTRUCTIONS = (
     "Verifies Polish companies against public registers: the Ministry of Finance "
@@ -47,14 +50,13 @@ def build_server(settings: Settings) -> MCPServer[AppState]:
 
     @asynccontextmanager
     async def lifespan(_server: MCPServer[AppState]) -> AsyncGenerator[AppState]:
-        async with httpx.AsyncClient() as http:
-            service = VerificationService(
-                WhiteListClient(http, settings), KrsClient(http, settings)
-            )
+        async with open_stores(settings) as stores, httpx.AsyncClient() as http:
+            service = build_verification_service(http, settings, stores)
             logger.info(
-                "registry clients ready (mf=%s, krs=%s)",
+                "registry clients ready (mf=%s, krs=%s, persistent=%s)",
                 settings.mf_base_url,
                 settings.krs_base_url,
+                stores.persistent,
             )
             yield AppState(service=service)
 
@@ -63,5 +65,10 @@ def build_server(settings: Settings) -> MCPServer[AppState]:
         instructions=INSTRUCTIONS,
         lifespan=lifespan,
     )
-    register_tools(server, verify_name=TOOL_VERIFY_COMPANY, check_name=TOOL_CHECK_BANK_ACCOUNT)
+    register_tools(
+        server,
+        verify_name=TOOL_VERIFY_COMPANY,
+        check_name=TOOL_CHECK_BANK_ACCOUNT,
+        history_name=TOOL_VERIFICATION_HISTORY,
+    )
     return server

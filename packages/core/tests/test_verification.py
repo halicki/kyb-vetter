@@ -7,12 +7,14 @@ import httpx
 import pytest
 import respx
 
+from kyb_vetter_core.audit import AuditRecorder
 from kyb_vetter_core.clients import whitelist as whitelist_module
 from kyb_vetter_core.clients.krs import KrsClient
 from kyb_vetter_core.clients.whitelist import WhiteListClient
 from kyb_vetter_core.config import Settings
 from kyb_vetter_core.errors import DailyLimitExceededError, InvalidNipError
 from kyb_vetter_core.models import VatStatus
+from kyb_vetter_core.storage.memory import MemoryAuditStore
 from kyb_vetter_core.verification import (
     MAX_ACCOUNT_NUMBERS,
     WARN_KRS_NOT_FOUND,
@@ -36,11 +38,23 @@ TODAY = date(2026, 10, 22)
 
 
 @pytest.fixture
-async def service(monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[VerificationService]:
+def audit_store() -> MemoryAuditStore:
+    return MemoryAuditStore()
+
+
+@pytest.fixture
+async def service(
+    audit_store: MemoryAuditStore, monkeypatch: pytest.MonkeyPatch
+) -> AsyncIterator[VerificationService]:
     monkeypatch.setattr(whitelist_module, "today_in_warsaw", lambda: TODAY)
     settings = Settings(mf_base_url=MF, krs_base_url=KRS, project_name="unit-test")
     async with httpx.AsyncClient() as http:
-        yield VerificationService(WhiteListClient(http, settings), KrsClient(http, settings))
+        yield VerificationService(
+            WhiteListClient(http, settings),
+            KrsClient(http, settings),
+            audit=AuditRecorder(audit_store),
+            persistent=False,
+        )
 
 
 @pytest.fixture
@@ -401,7 +415,12 @@ async def test_verify_company_marks_official_host_as_production(
         200, json=fixture_json("whitelist/search_missing")
     )
     async with httpx.AsyncClient() as http:
-        service = VerificationService(WhiteListClient(http, settings), KrsClient(http, settings))
+        service = VerificationService(
+            WhiteListClient(http, settings),
+            KrsClient(http, settings),
+            audit=AuditRecorder(MemoryAuditStore()),
+            persistent=False,
+        )
         result = await service.verify_company(NIP)
 
     assert result.sources[0].host == "wykazpodatnikowvat.mf.gov.pl"
@@ -427,3 +446,93 @@ def test_names_match_tolerates_case_whitespace_and_legal_form_abbreviations(a: s
 @pytest.mark.parametrize(("a", "b"), [("ORLEN S.A.", "LOTOS S.A."), (None, "X"), ("X", None)])
 def test_names_match_false_for_different_or_missing(a: str | None, b: str | None) -> None:
     assert not names_match(a, b)
+
+
+# --- audit + history ------------------------------------------------------
+
+
+async def test_verify_company_records_an_audit_event(
+    service: VerificationService,
+    audit_store: MemoryAuditStore,
+    mock_api: respx.MockRouter,
+    wl_found: dict[str, Any],
+    krs_orlen: Any,
+) -> None:
+    _mock_wl_search(mock_api, wl_found)
+    _mock_krs(mock_api, "P", krs_orlen)
+
+    await service.verify_company(NIP, principal="alice")
+
+    events = await audit_store.history(NIP, limit=5)
+    assert len(events) == 1
+    assert events[0].principal == "alice"
+    assert events[0].tool == "verify_company"
+    assert events[0].outcome == "ok"
+    assert events[0].request_ids == ("d2n10-84df1a1",)
+    assert events[0].sources == ("mf-whitelist", "krs")
+
+
+async def test_failed_calls_are_audited_too(
+    service: VerificationService,
+    audit_store: MemoryAuditStore,
+    mock_api: respx.MockRouter,
+    fixture_json: Callable[[str], Any],
+) -> None:
+    _mock_wl_search(mock_api, fixture_json("whitelist/error_wl191"), status=429)
+
+    with pytest.raises(DailyLimitExceededError):
+        await service.verify_company(NIP)
+
+    events = await audit_store.history(NIP, limit=5)
+    assert [e.outcome for e in events] == ["error"]
+    assert events[0].error_code == "WL-191"
+    assert events[0].principal == "local"
+
+
+async def test_invalid_nip_is_audited_under_the_raw_input(
+    service: VerificationService, audit_store: MemoryAuditStore, mock_api: respx.MockRouter
+) -> None:
+    with pytest.raises(InvalidNipError):
+        await service.verify_company("PL 123-456-78-90")
+
+    events = await audit_store.history("1234567890", limit=5)
+    assert events
+    assert events[0].error_code == "INVALID_INPUT"
+
+
+async def test_verification_history_lists_newest_first_with_summary(
+    service: VerificationService,
+    mock_api: respx.MockRouter,
+    wl_found: dict[str, Any],
+    fixture_json: Callable[[str], Any],
+) -> None:
+    wl_found["result"]["subject"]["krs"] = None
+    _mock_wl_search(mock_api, wl_found)
+    mock_api.get(f"{MF}/api/check/nip/{NIP}/bank-account/{NRB}").respond(
+        200, json=fixture_json("whitelist/check_nie")
+    )
+    mock_api.get(f"{MF}/api2/status/nip/{NIP}").respond(
+        200, json=fixture_json("whitelist/status_czynny")
+    )
+
+    await service.verify_company(NIP)
+    await service.check_bank_account(NIP, NRB)
+    history = await service.verification_history(NIP, limit=10)
+
+    assert history.nip == NIP
+    assert history.persistent is False
+    assert [e.tool for e in history.entries] == ["check_bank_account", "verify_company"]
+    assert history.entries[0].outcome == "ok"
+    assert history.entries[0].assigned is False
+    assert history.entries[0].vat_status is VatStatus.ACTIVE
+    assert history.entries[1].vat_status is VatStatus.ACTIVE
+    assert history.entries[1].assigned is None
+    assert history.entries[1].request_ids == ("d2n10-84df1a1",)
+    assert len(history.entries[1].response_sha256 or "") == 64
+
+
+async def test_verification_history_limit_and_invalid_nip(service: VerificationService) -> None:
+    history = await service.verification_history(NIP, limit=1)
+    assert history.entries == ()
+    with pytest.raises(InvalidNipError):
+        await service.verification_history("1234567890")

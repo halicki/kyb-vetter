@@ -63,6 +63,9 @@ class Settings(BaseSettings):
     http_timeout_s: float = 10.0
     """Per-request timeout for registry calls, in seconds."""
 
+    database_url: str | None = None
+    """SQLAlchemy async URL (``postgresql+asyncpg://...``). Unset = in-memory storage, not persistent."""
+
     @field_validator("mf_base_url", "krs_base_url")
     @classmethod
     def _strip_trailing_slash(cls, value: str) -> str:

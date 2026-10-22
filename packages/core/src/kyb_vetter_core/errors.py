@@ -4,6 +4,11 @@ Identifier errors are raised locally, before any network call, so that a
 malformed NIP or account number never consumes registry quota.
 """
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from datetime import date
+
 
 class CoreError(Exception):
     """Base class for every error raised by the domain core."""
@@ -138,3 +143,24 @@ def registry_error_from_code(
         )
     cls = _WHITELIST_CODE_TO_CLASS.get(code, RegistryError)
     return cls(message, source=source, code=code, http_status=http_status)
+
+
+# --- Local quota guard ----------------------------------------------------
+
+
+class QuotaExhaustedError(CoreError):
+    """Our own guard refused a registry call: the daily safety threshold is reached.
+
+    Raised before any network traffic, so the registry never sees the request
+    and the IP is not blocked.
+    """
+
+    def __init__(self, *, bucket: str, used: int, threshold: int, resets_on: date) -> None:
+        self.bucket = bucket
+        self.used = used
+        self.threshold = threshold
+        self.resets_on = resets_on
+        super().__init__(
+            f"quota guard: {bucket} used {used}/{threshold} today; "
+            f"resets at midnight Europe/Warsaw ({resets_on.isoformat()})"
+        )

@@ -9,14 +9,14 @@ that produced it.
 
 import logging
 import re
-from datetime import date
-from typing import TYPE_CHECKING, Literal, TypeIs
+from datetime import date, datetime
+from typing import TYPE_CHECKING, Any, Literal, TypeIs
 
 from pydantic import BaseModel, ConfigDict
 
 from kyb_vetter_core.config import RegistryEnvironment, registry_environment
 from kyb_vetter_core.errors import NotFoundError, RegistryError
-from kyb_vetter_core.identifiers import normalize_nip
+from kyb_vetter_core.identifiers import normalize_nip, validate_nip
 from kyb_vetter_core.models import (
     SOURCE_KRS,
     KrsExtract,
@@ -27,8 +27,9 @@ from kyb_vetter_core.models import (
 from kyb_vetter_core.sanitize import clean_text
 
 if TYPE_CHECKING:
-    from kyb_vetter_core.clients.krs import KrsClient
-    from kyb_vetter_core.clients.whitelist import WhiteListClient
+    from kyb_vetter_core.audit import AuditRecorder
+    from kyb_vetter_core.clients.protocols import KrsProtocol, WhiteListProtocol
+    from kyb_vetter_core.storage.ports import AuditEvent
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,10 @@ WARN_NAME_MISMATCH = "NAME_MISMATCH"
 WARN_NO_BANK_ACCOUNTS = "NO_BANK_ACCOUNTS"
 
 SOURCE_CEIDG = "ceidg"
+DEFAULT_PRINCIPAL = "local"
+"""Caller identity until authentication lands (M6)."""
+TOOL_VERIFY_COMPANY = "verify_company"
+TOOL_CHECK_BANK_ACCOUNT = "check_bank_account"
 
 MAX_ACCOUNT_NUMBERS = 20
 """Accounts listed per company; `account_count` still reports the total (large firms have hundreds)."""
@@ -77,6 +82,7 @@ class SourceReceipt(_Model):
     request_datetime: str
     queried_date: date
     response_sha256: str
+    from_cache: bool = False
 
     @classmethod
     def from_receipt(cls, receipt: RegistryReceipt) -> SourceReceipt:
@@ -88,6 +94,7 @@ class SourceReceipt(_Model):
             request_datetime=receipt.request_datetime.isoformat(),
             queried_date=receipt.queried_date,
             response_sha256=receipt.response_sha256,
+            from_cache=receipt.from_cache,
         )
 
 
@@ -209,6 +216,47 @@ class BankAccountVerification(_Model):
     sources: tuple[SourceReceipt, ...]
 
 
+class HistoryEntry(_Model):
+    """One past invocation, condensed from the audit log."""
+
+    ts: datetime
+    tool: str
+    outcome: Literal["ok", "error"]
+    error_code: str | None
+    vat_status: VatStatus | None
+    assigned: bool | None
+    request_ids: tuple[str, ...]
+    sources: tuple[str, ...]
+    response_sha256: str | None
+    from_cache: bool
+
+    @classmethod
+    def from_event(cls, event: AuditEvent) -> HistoryEntry:
+        result = event.result or {}
+        vat = result.get("vat") or {}
+        status = vat.get("status") or result.get("vat_status")
+        return cls(
+            ts=event.ts,
+            tool=event.tool,
+            outcome=event.outcome,
+            error_code=event.error_code,
+            vat_status=None if status is None else VatStatus(status),
+            assigned=result.get("assigned"),
+            request_ids=event.request_ids,
+            sources=event.sources,
+            response_sha256=event.response_sha256,
+            from_cache=event.from_cache,
+        )
+
+
+class VerificationHistory(_Model):
+    """What this server has checked for a NIP, newest first."""
+
+    nip: str
+    persistent: bool
+    entries: tuple[HistoryEntry, ...]
+
+
 # --- name comparison ------------------------------------------------------
 
 _LEGAL_FORMS: tuple[tuple[str, str], ...] = (
@@ -242,12 +290,92 @@ def names_match(a: str | None, b: str | None) -> bool:
 
 
 class VerificationService:
-    def __init__(self, whitelist: WhiteListClient, krs: KrsClient) -> None:
+    def __init__(
+        self,
+        whitelist: WhiteListProtocol,
+        krs: KrsProtocol,
+        *,
+        audit: AuditRecorder,
+        persistent: bool,
+    ) -> None:
         self._whitelist = whitelist
         self._krs = krs
+        self._audit = audit
+        self._persistent = persistent
 
-    async def verify_company(self, nip: str, *, date: date | None = None) -> CompanyVerification:
-        """White-list entry plus, when it names a KRS number, the current KRS extract."""
+    async def verify_company(
+        self, nip: str, *, date: date | None = None, principal: str = DEFAULT_PRINCIPAL
+    ) -> CompanyVerification:
+        """White-list entry plus, when it names a KRS number, the current KRS extract. Audited."""
+        audit_input: dict[str, Any] = {
+            "nip": nip,
+            "date": None if date is None else date.isoformat(),
+        }
+        try:
+            result = await self._verify_company(nip, date=date)
+        except Exception as exc:
+            await self._audit.record_error(
+                principal=principal,
+                tool=TOOL_VERIFY_COMPANY,
+                nip=normalize_nip(nip),
+                input=audit_input,
+                exc=exc,
+            )
+            raise
+        await self._audit.record_success(
+            principal=principal,
+            tool=TOOL_VERIFY_COMPANY,
+            nip=result.nip,
+            input=audit_input,
+            result=result,
+        )
+        return result
+
+    async def check_bank_account(
+        self,
+        nip: str,
+        account: str,
+        *,
+        date: date | None = None,
+        principal: str = DEFAULT_PRINCIPAL,
+    ) -> BankAccountVerification:
+        """Whether ``account`` belongs to ``nip`` on the white list, plus the current VAT status. Audited."""
+        audit_input: dict[str, Any] = {
+            "nip": nip,
+            "account": account,
+            "date": None if date is None else date.isoformat(),
+        }
+        try:
+            result = await self._check_bank_account(nip, account, date=date)
+        except Exception as exc:
+            await self._audit.record_error(
+                principal=principal,
+                tool=TOOL_CHECK_BANK_ACCOUNT,
+                nip=normalize_nip(nip),
+                input=audit_input,
+                exc=exc,
+            )
+            raise
+        await self._audit.record_success(
+            principal=principal,
+            tool=TOOL_CHECK_BANK_ACCOUNT,
+            nip=result.nip,
+            input=audit_input,
+            result=result,
+        )
+        return result
+
+    async def verification_history(self, nip: str, *, limit: int = 20) -> VerificationHistory:
+        """Past invocations for ``nip`` recorded by this server, newest first."""
+        clean = validate_nip(nip)
+        events = await self._audit.history(clean, limit=limit)
+        return VerificationHistory(
+            nip=clean,
+            persistent=self._persistent,
+            entries=tuple(HistoryEntry.from_event(e) for e in events),
+        )
+
+    async def _verify_company(self, nip: str, *, date: date | None) -> CompanyVerification:
         search = await self._whitelist.search(nip, date=date)
         sources = [SourceReceipt.from_receipt(search.receipt)]
         skipped = [SkippedSource(source=SOURCE_CEIDG, reason=SKIPPED_CEIDG)]
@@ -303,10 +431,9 @@ class VerificationService:
             skipped=tuple(skipped),
         )
 
-    async def check_bank_account(
-        self, nip: str, account: str, *, date: date | None = None
+    async def _check_bank_account(
+        self, nip: str, account: str, *, date: date | None
     ) -> BankAccountVerification:
-        """Whether ``account`` belongs to ``nip`` on the white list, plus the current VAT status."""
         check = await self._whitelist.check(nip, account, date=date)
         sources = [SourceReceipt.from_receipt(check.receipt)]
         warnings: list[VerificationWarning] = []

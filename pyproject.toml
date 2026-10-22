@@ -65,7 +65,12 @@ ignore = [
 
 [tool.ruff.lint.flake8-type-checking]
 # pydantic reads field annotations at runtime, so their imports must not be deferred
-runtime-evaluated-base-classes = ["pydantic.BaseModel", "pydantic_settings.BaseSettings"]
+runtime-evaluated-base-classes = [
+    "pydantic.BaseModel",
+    "pydantic_settings.BaseSettings",
+    "sqlalchemy.orm.DeclarativeBase",
+    "kyb_vetter_core.storage.postgres.Base",
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["kyb_vetter_core", "kyb_vetter_mcp", "kyb_vetter_api", "kyb_vetter_worker"]
@@ -98,6 +103,14 @@ return-type-inference = "always"
 strict-equality-semantics = true
 strict-generic-narrowing = true
 
+[[tool.ty.overrides]]
+# SQLAlchemy declarative mapping infers column types from the `Mapped[...]` annotation;
+# `mapped_column()` without an explicit type is `MappedColumn[Any]` by design.
+include = ["packages/core/src/kyb_vetter_core/storage/postgres.py"]
+
+[tool.ty.overrides.rules]
+unsound-assignment = "ignore"
+
 # ---------------------------------------------------------------- pytest
 [tool.pytest.ini_options]
 testpaths = ["packages", "apps", "evals"]
@@ -105,6 +118,7 @@ addopts = "-ra --strict-markers --import-mode=importlib -m 'not live' --cov --co
 markers = [
     "live: hits real external (government) APIs; disabled by default, run with `-m live`",
     "eval: deterministic tool-behaviour scenarios from evals/scenarios (run by default)",
+    "db: needs Postgres via APP_TEST_DATABASE_URL (compose locally, service container in CI); skipped otherwise",
 ]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
@@ -115,7 +129,10 @@ asyncio_default_fixture_loop_scope = "function"
 [tool.coverage.run]
 source = ["packages/core/src", "apps/mcp/src", "apps/api/src", "apps/worker/src"]
 branch = true
-omit = ["*/__main__.py"]  # process entry points, exercised by hand (MCP Inspector)
+omit = [
+    "*/__main__.py",            # process entry points, exercised by hand (MCP Inspector)
+    "*/clients/protocols.py",  # typing-only Protocols, imported under TYPE_CHECKING
+]
 
 [tool.coverage.report]
 fail_under = 100
@@ -139,6 +156,10 @@ exact = true                        # every declared `depends_on` must be used
 forbid_circular_dependencies = true
 ignore_type_checking_imports = true # `if TYPE_CHECKING:` imports are not runtime coupling
 
+[tool.tach.external]
+# asyncpg is loaded by SQLAlchemy from the URL scheme; alembic runs from packages/core/alembic (outside src)
+exclude = ["asyncpg", "alembic"]
+
 [tool.tach.rules]
 unused_ignore_directives = "error"
 require_ignore_directive_reasons = "error"
@@ -160,6 +181,54 @@ depends_on = []
 [[tool.tach.modules]]
 path = "kyb_vetter_core.identifiers"
 depends_on = ["kyb_vetter_core.errors"]
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.storage"
+depends_on = [
+    "kyb_vetter_core.storage.memory",
+    "kyb_vetter_core.storage.ports",
+    "kyb_vetter_core.storage.postgres",
+]
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.storage.ports"
+depends_on = []
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.storage.memory"
+depends_on = []  # ports imported under TYPE_CHECKING only
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.storage.postgres"
+depends_on = ["kyb_vetter_core.storage.ports"]
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.quota"
+depends_on = ["kyb_vetter_core.clients.whitelist", "kyb_vetter_core.errors", "kyb_vetter_core.identifiers"]
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.cache"
+depends_on = [
+    "kyb_vetter_core.clients.whitelist",
+    "kyb_vetter_core.identifiers",
+    "kyb_vetter_core.models",
+    "kyb_vetter_core.storage.ports",
+]
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.audit"
+depends_on = ["kyb_vetter_core.errors", "kyb_vetter_core.storage.ports"]
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.assembly"
+depends_on = [
+    "kyb_vetter_core.audit",
+    "kyb_vetter_core.cache",
+    "kyb_vetter_core.clients.krs",
+    "kyb_vetter_core.clients.whitelist",
+    "kyb_vetter_core.quota",
+    "kyb_vetter_core.verification",
+]
 
 [[tool.tach.modules]]
 path = "kyb_vetter_core.sanitize"
