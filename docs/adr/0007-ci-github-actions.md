@@ -13,7 +13,7 @@ Federation. The repo is small; one job is enough.
 Workflow `.github/workflows/ci.yml` on push to `main` and on pull requests:
 
 1. `actions/checkout@v7`
-2. `astral-sh/setup-uv@v10` with `enable-cache: true` (reads `.python-version`)
+2. `astral-sh/setup-uv@v10.3.2` (the action publishes no floating major tag) with `enable-cache: true` (reads `.python-version`)
 3. `uv sync --locked --all-packages` - fails if `uv.lock` is stale
 4. `uv run ruff check .` and `uv run ruff format --check .`
 5. `uv run ty check`
