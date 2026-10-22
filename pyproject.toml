@@ -15,7 +15,7 @@ dependencies = []
 [dependency-groups]
 dev = [
     "ruff>=0.17.1",
-    "pyright>=1.1.414",
+    "ty>=0.0.91",
     "pytest>=9.1",
     "pytest-asyncio>=1.4",
     "respx>=0.23",
@@ -67,15 +67,30 @@ known-first-party = ["kyb_vetter_core", "kyb_vetter_mcp", "kyb_vetter_api", "kyb
 [tool.ruff.format]
 docstring-code-format = true
 
-# ---------------------------------------------------------------- pyright
-[tool.pyright]
-venvPath = "."
-venv = ".venv"
+# ---------------------------------------------------------------- ty
+# Warnings fail the run (terminal.error-on-warning defaults to true).
+# ty has no "strict" profile; the override below is the strict profile for core.
+[tool.ty.src]
 include = ["packages", "apps"]
 exclude = ["**/.venv", "**/__pycache__"]
-typeCheckingMode = "standard"
-strict = ["packages/core/src"]
-reportMissingImports = "error"
+
+[tool.ty.environment]
+python = "./.venv"
+python-version = "3.15"
+
+[tool.ty.rules]
+possibly-unresolved-reference = "error"
+
+[[tool.ty.overrides]]
+include = ["packages/core/src/**"]
+
+[tool.ty.overrides.rules]
+all = "error"
+
+[tool.ty.overrides.analysis]
+return-type-inference = "always"
+strict-equality-semantics = true
+strict-generic-narrowing = true
 
 # ---------------------------------------------------------------- pytest
 [tool.pytest.ini_options]

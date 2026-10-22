@@ -19,8 +19,12 @@ budget of the hosted service and could get a developer IP (or CI runner) blocked
   machine, never in CI.
 - `pytest-asyncio` in `asyncio_mode = "auto"`; `--import-mode=importlib` so
   each package can have its own `tests/` directory without name clashes.
-- Type checking: pyright `strict` for `packages/core/src`, `standard` for the
-  apps and tests.
+- Type checking: Astral's `ty` (beta, `0.0.x`, API may change between
+  versions - pinned by `uv.lock`). Warnings fail the run. `packages/core/src`
+  gets a strict profile via `[[tool.ty.overrides]]` (all rules at `error`,
+  return-type inference, strict equality and generic narrowing); apps and
+  tests use the defaults. Chosen over pyright on 2026-10-22 for speed and a
+  single-vendor toolchain with ruff and uv.
 - Prompt-injection tests for tool outputs are part of the suite from M2 (data
   from registers is untrusted input to the model).
 

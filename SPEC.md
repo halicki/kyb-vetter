@@ -81,3 +81,4 @@ Listy sankcyjne (MSWiA, skonsolidowana lista UE), lista ostrzeżeń KNF, raport 
 - Domena: placeholder do M6.
 - Region: `europe-west1` (ADR-0005).
 - IdP: decyzja w ADR przed M6.
+- Type checker: `ty` zamiast pyright (decyzja 2026-10-22, ADR-0006).

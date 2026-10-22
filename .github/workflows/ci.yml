@@ -32,7 +32,7 @@ jobs:
         run: uv run ruff format --check .
 
       - name: Type-check
-        run: uv run pyright
+        run: uv run ty check
 
       - name: Module boundaries
         run: uv run tach check

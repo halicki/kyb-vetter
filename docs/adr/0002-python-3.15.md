@@ -25,7 +25,7 @@ planned stack publishes `cp315` wheels:
 
 Pure-Python packages (mcp 2.3.0, fastapi 0.160.0, httpx 0.28.1, respx 0.23.1,
 alembic 1.20.1, pydantic-settings 2.16.1, pytest 9.1.1, pytest-asyncio 1.4.0,
-ruff 0.17.1, pyright 1.1.414) declare no upper bound.
+ruff 0.17.1, ty 0.0.91) declare no upper bound.
 
 ## Consequences
 
@@ -33,5 +33,5 @@ ruff 0.17.1, pyright 1.1.414) declare no upper bound.
   `ghcr.io/astral-sh/uv:python3.15-*`) - confirm availability in M4.
 - If a later dependency (e.g. a sanctions-list parser) ships no 3.15 wheel,
   record it here and decide between waiting and pinning 3.14.
-- ruff infers `target-version = py315` from `requires-python`; pyright reads the
-  interpreter version from the venv.
+- ruff infers `target-version = py315` from `requires-python`; ty is pinned to
+  `python-version = "3.15"` explicitly.

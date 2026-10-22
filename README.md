@@ -31,7 +31,7 @@ uv sync --all-packages        # create .venv and install every workspace member
 uv run pre-commit install     # lint/format/type-check on commit
 uv run pytest                 # unit tests (never call real government APIs)
 uv run ruff check . && uv run ruff format --check .
-uv run pyright
+uv run ty check
 ```
 
 Tests that reach real endpoints are marked `live` and excluded by default:

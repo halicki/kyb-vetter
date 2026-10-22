@@ -35,7 +35,7 @@ Read `SPEC.md` and `docs/adr/README.md` before any non-trivial task.
 ```sh
 uv sync --all-packages
 uv run ruff check . && uv run ruff format --check .
-uv run pyright
+uv run ty check
 uv run pytest
 uv run pre-commit run --all-files
 ```

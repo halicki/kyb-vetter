@@ -16,11 +16,11 @@ Workflow `.github/workflows/ci.yml` on push to `main` and on pull requests:
 2. `astral-sh/setup-uv@v10` with `enable-cache: true` (reads `.python-version`)
 3. `uv sync --locked --all-packages` - fails if `uv.lock` is stale
 4. `uv run ruff check .` and `uv run ruff format --check .`
-5. `uv run pyright`
+5. `uv run ty check`
 6. `uv run pytest` (live tests excluded by config)
 
-Locally the same checks run via `pre-commit` (ruff hooks, pyright as a local
-hook through `uv run --frozen`).
+Locally the same checks run via `pre-commit` (ruff hooks, ty and tach as local
+hooks through `uv run --frozen`).
 
 ## Consequences
 
