@@ -6,7 +6,7 @@ locals {
   to_asyncpg = { for k, v in {
     pooler = neon_project.this.connection_uri_pooler
     direct = neon_project.this.connection_uri
-  } : k => replace(replace(v, "/^postgres(ql)?:\/\//", "postgresql+asyncpg://"), "sslmode=require", "ssl=require") }
+  } : k => replace(replace(v, "/^postgres(ql)?:/", "postgresql+asyncpg:"), "sslmode=require", "ssl=require") }
 }
 
 # Pooled URI for the service (PgBouncer, transaction mode); direct URI for Alembic.
