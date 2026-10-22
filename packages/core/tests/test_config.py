@@ -44,3 +44,27 @@ def test_settings_are_immutable() -> None:
 def test_get_settings_is_cached() -> None:
     get_settings.cache_clear()
     assert get_settings() is get_settings()
+
+
+def test_registry_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in ("APP_MF_BASE_URL", "APP_KRS_BASE_URL", "APP_HTTP_TIMEOUT_S"):
+        monkeypatch.delenv(name, raising=False)
+
+    settings = Settings()
+
+    assert settings.mf_base_url == "https://wykazpodatnikowvat.mf.gov.pl"
+    assert settings.krs_base_url == "https://api-krs.ms.gov.pl"
+    assert settings.http_timeout_s == 10.0
+    assert settings.user_agent.startswith(f"{DEFAULT_PROJECT_NAME}/")
+
+
+def test_registry_settings_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("APP_MF_BASE_URL", "https://wykazpodatnikowvat-test.mf.gov.pl/")
+    monkeypatch.setenv("APP_HTTP_TIMEOUT_S", "2.5")
+
+    settings = Settings()
+
+    assert (
+        settings.mf_base_url == "https://wykazpodatnikowvat-test.mf.gov.pl"
+    )  # trailing slash stripped
+    assert settings.http_timeout_s == 2.5

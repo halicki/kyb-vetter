@@ -1,0 +1,31 @@
+{
+  "result": {
+    "subject": {
+      "name": "ABC Jan Nowak",
+      "nip": "1234563218",
+      "statusVat": "Czynny",
+      "regon": "123456785",
+      "pesel": null,
+      "krs": "0000636771",
+      "residenceAddress": "ul. Chmielna 85/87 00-805 Warszawa",
+      "workingAddress": null,
+      "representatives": [],
+      "authorizedClerks": [],
+      "partners": [],
+      "registrationLegalDate": "2019-09-01",
+      "registrationDenialDate": null,
+      "registrationDenialBasis": null,
+      "restorationDate": null,
+      "restorationBasis": null,
+      "removalDate": null,
+      "removalBasis": null,
+      "exemptionSmeDate": null,
+      "accountNumbers": [
+        "61109010140000071219812874"
+      ],
+      "hasVirtualAccounts": false
+    },
+    "requestDateTime": "22-10-2026 10:00:00",
+    "requestId": "d2n10-84df1a1"
+  }
+}

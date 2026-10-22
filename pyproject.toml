@@ -18,6 +18,7 @@ dev = [
     "ty>=0.0.91",
     "pytest>=9.1",
     "pytest-asyncio>=1.4",
+    "pytest-cov>=7",
     "respx>=0.23",
     "httpx>=0.28",
     "pre-commit>=4.7",
@@ -59,7 +60,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests/**" = ["S101", "S106"]   # assert and hard-coded test secrets are fine in tests
+"**/tests/**" = ["S101", "S106", "TC"]   # asserts, test secrets and plain typing imports are fine in tests
 
 [tool.ruff.lint.isort]
 known-first-party = ["kyb_vetter_core", "kyb_vetter_mcp", "kyb_vetter_api", "kyb_vetter_worker"]
@@ -95,12 +96,25 @@ strict-generic-narrowing = true
 # ---------------------------------------------------------------- pytest
 [tool.pytest.ini_options]
 testpaths = ["packages", "apps"]
-addopts = "-ra --strict-markers --import-mode=importlib -m 'not live'"
+addopts = "-ra --strict-markers --import-mode=importlib -m 'not live' --cov --cov-report=term-missing"
 markers = [
     "live: hits real external (government) APIs; disabled by default, run with `-m live`",
 ]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+
+# ---------------------------------------------------------------- coverage
+# 100% is a hard gate: core is pure logic built test-first. Bootstrap-only code
+# in apps may carry `# pragma: no cover` with a reason.
+[tool.coverage.run]
+source = ["packages/core/src", "apps/mcp/src", "apps/api/src", "apps/worker/src"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+skip_covered = true
+exclude_also = ["if TYPE_CHECKING:", "^\\s*\\.\\.\\.$"]
 
 # ---------------------------------------------------------------- tach
 # Module boundaries (ADR-0008). Two checks, two scopes:
@@ -121,11 +135,36 @@ ignore_type_checking_imports = true # `if TYPE_CHECKING:` imports are not runtim
 [tool.tach.rules]
 unused_ignore_directives = "error"
 require_ignore_directive_reasons = "error"
-unused_external_dependencies = "warn"  # declared-but-unused deps; "error" once core has real code
+unused_external_dependencies = "warn"  # "error" once apps import core (M2); apps are empty shells until then
 
 [[tool.tach.modules]]
 path = "kyb_vetter_core"
 depends_on = []
+
+# Core internals: errors and config at the bottom, clients at the top.
+[[tool.tach.modules]]
+path = "kyb_vetter_core.errors"
+depends_on = []
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.config"
+depends_on = []
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.identifiers"
+depends_on = ["kyb_vetter_core.errors"]
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.models"
+depends_on = ["kyb_vetter_core.errors"]
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.clients.whitelist"
+depends_on = ["kyb_vetter_core.errors", "kyb_vetter_core.identifiers", "kyb_vetter_core.models"]
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.clients.krs"
+depends_on = ["kyb_vetter_core.errors", "kyb_vetter_core.identifiers", "kyb_vetter_core.models"]
 
 [[tool.tach.modules]]
 path = "kyb_vetter_mcp"

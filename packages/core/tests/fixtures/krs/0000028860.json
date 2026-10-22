@@ -1,0 +1,164 @@
+{
+  "odpis": {
+    "rodzaj": "Aktualny",
+    "naglowekA": {
+      "rejestr": "RejP",
+      "numerKRS": "0000028860",
+      "dataCzasOdpisu": "22.10.2026 21:13:27",
+      "stanZDnia": "09.10.2026",
+      "dataRejestracjiWKRS": "19.07.2001",
+      "numerOstatniegoWpisu": 222,
+      "dataOstatniegoWpisu": "09.10.2026",
+      "sygnaturaAktSprawyDotyczacejOstatniegoWpisu": "LD.XX NS-REJ.KRS/31516/26/344",
+      "oznaczenieSaduDokonujacegoOstatniegoWpisu": "SĄD REJONOWY DLA ŁODZI ŚRÓDMIEŚCIA W ŁODZI, XX WYDZIAŁ GOSPODARCZY KRAJOWEGO REJESTRU SĄDOWEGO",
+      "stanPozycji": 1
+    },
+    "dane": {
+      "dzial1": {
+        "danePodmiotu": {
+          "formaPrawna": "SPÓŁKA AKCYJNA",
+          "identyfikatory": {
+            "regon": "61018820100000",
+            "nip": "7740001454"
+          },
+          "nazwa": "ORLEN SPÓŁKA AKCYJNA"
+        },
+        "siedzibaIAdres": {
+          "siedziba": {
+            "kraj": "POLSKA",
+            "wojewodztwo": "MAZOWIECKIE",
+            "powiat": "M. PŁOCK",
+            "gmina": "M. PŁOCK",
+            "miejscowosc": "PŁOCK"
+          },
+          "adres": {
+            "ulica": "CHEMIKÓW",
+            "nrDomu": "7",
+            "miejscowosc": "PŁOCK",
+            "kodPocztowy": "09-411",
+            "poczta": "PŁOCK-BIAŁA",
+            "kraj": "POLSKA"
+          },
+          "adresPocztyElektronicznej": "ZARZAD@ORLEN.PL",
+          "adresStronyInternetowej": "WWW.ORLEN.PL"
+        },
+        "kapital": {
+          "wysokoscKapitaluZakladowego": {
+            "wartosc": "1451177561,25",
+            "waluta": "PLN"
+          }
+        }
+      },
+      "dzial2": {
+        "reprezentacja": {
+          "nazwaOrganu": "ZARZĄD",
+          "sposobReprezentacji": "- DWAJ CZŁONKOWIE ZARZĄDU DZIAŁAJĄCY ŁĄCZNIE\n- CZŁONEK ZARZĄDU DZIAŁAJĄCY ŁĄCZNIE Z PROKURENTEM\nDO ZACIĄGANIA ZOBOWIĄZAŃ I DOKONYWANIA CZYNNOŚCI ROZPORZĄDZAJĄCYCH ZWYKŁEGO ZARZĄDU O WARTOŚCI NIE PRZEKRACZAJĄCEJ 100.000 /STO TYSIĘCY/ ZŁOTYCH WYSTARCZAJĘCE JEST OŚWIADCZENIE WOLI I PODPIS JEDNEGO CZŁONKA ZARZĄDU.",
+          "sklad": [
+            {
+              "nazwisko": {
+                "nazwiskoICzlon": "F*****"
+              },
+              "imiona": {
+                "imie": "I*******"
+              },
+              "identyfikator": {
+                "pesel": "5**********"
+              },
+              "funkcjaWOrganie": "PREZES ZARZĄDU",
+              "czyZawieszona": false
+            },
+            {
+              "nazwisko": {
+                "nazwiskoICzlon": "S********"
+              },
+              "imiona": {
+                "imie": "R*****"
+              },
+              "identyfikator": {
+                "pesel": "6**********"
+              },
+              "funkcjaWOrganie": "WICEPREZES ZARZĄDU DS. OPERACYJNYCH",
+              "czyZawieszona": false
+            }
+          ]
+        },
+        "organNadzoru": [
+          {
+            "nazwa": "RADA NADZORCZA",
+            "sklad": [
+              {
+                "nazwisko": {
+                  "nazwiskoICzlon": "G*******"
+                },
+                "imiona": {
+                  "imie": "E**"
+                },
+                "identyfikator": {
+                  "pesel": "7**********"
+                }
+              },
+              {
+                "nazwisko": {
+                  "nazwiskoICzlon": "Ł****"
+                },
+                "imiona": {
+                  "imie": "K********"
+                },
+                "identyfikator": {
+                  "pesel": "8**********"
+                }
+              }
+            ]
+          }
+        ],
+        "prokurenci": [
+          {
+            "nazwisko": {
+              "nazwiskoICzlon": "W*********"
+            },
+            "imiona": {
+              "imie": "R****"
+            },
+            "identyfikator": {
+              "pesel": "7**********"
+            },
+            "rodzajProkury": "PROKURA ŁĄCZNA"
+          }
+        ]
+      },
+      "dzial3": {
+        "przedmiotDzialalnosci": {
+          "przedmiotPrzewazajacejDzialalnosci": [
+            {
+              "opis": "WYTWARZANIE I PRZETWARZANIE PRODUKTÓW RAFINACJI ROPY NAFTOWEJ ORAZ PRODUKTÓW Z PALIW KOPALNYCH",
+              "kodDzial": "19",
+              "kodKlasa": "20",
+              "kodPodklasa": "Z"
+            }
+          ],
+          "przedmiotPozostalejDzialalnosci": [
+            {
+              "opis": "PRODUKCJA PODSTAWOWYCH CHEMIKALIÓW, NAWOZÓW I ZWIĄZKÓW AZOTOWYCH, TWORZYW SZTUCZNYCH I KAUCZUKU SYNTETYCZNEGO W FORMACH PODSTAWOWYCH",
+              "kodDzial": "20",
+              "kodKlasa": "1"
+            },
+            {
+              "opis": "MAGAZYNOWANIE I PRZECHOWYWANIE TOWARÓW",
+              "kodDzial": "52",
+              "kodKlasa": "1"
+            }
+          ]
+        }
+      },
+      "dzial4": {},
+      "dzial5": {},
+      "dzial6": {
+        "polaczeniePodzialPrzeksztalcenie": [
+          {
+            "opis": "POŁĄCZENIE (skrócone w fixture)"
+          }
+        ]
+      }
+    }
+  }
+}

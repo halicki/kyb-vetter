@@ -10,7 +10,9 @@ variable names survive a rebrand too.
 """
 
 from functools import lru_cache
+from importlib.metadata import version
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_PROJECT_NAME = "kyb-vetter"
@@ -18,6 +20,12 @@ DEFAULT_PROJECT_NAME = "kyb-vetter"
 
 DEFAULT_DOMAIN = "localhost"
 """Placeholder; the real domain is injected per environment (APP_DOMAIN)."""
+
+DEFAULT_MF_BASE_URL = "https://wykazpodatnikowvat.mf.gov.pl"
+"""VAT white-list API host since 2026-10-15 (ADR-0009). Test env: wykazpodatnikowvat-test.mf.gov.pl."""
+
+DEFAULT_KRS_BASE_URL = "https://api-krs.ms.gov.pl"
+"""National Court Register open API."""
 
 
 class Settings(BaseSettings):
@@ -31,11 +39,30 @@ class Settings(BaseSettings):
     domain: str = DEFAULT_DOMAIN
     """Public hostname the hosted service is reachable at."""
 
+    mf_base_url: str = DEFAULT_MF_BASE_URL
+    """Base URL of the Ministry of Finance white-list API (no trailing slash)."""
+
+    krs_base_url: str = DEFAULT_KRS_BASE_URL
+    """Base URL of the KRS API (no trailing slash)."""
+
+    http_timeout_s: float = 10.0
+    """Per-request timeout for registry calls, in seconds."""
+
+    @field_validator("mf_base_url", "krs_base_url")
+    @classmethod
+    def _strip_trailing_slash(cls, value: str) -> str:
+        return value.rstrip("/")
+
     @property
     def public_base_url(self) -> str:
         """Base URL of the hosted service; plain http only for localhost."""
         scheme = "http" if self.domain == "localhost" else "https"
         return f"{scheme}://{self.domain}"
+
+    @property
+    def user_agent(self) -> str:
+        """``User-Agent`` sent to registries, e.g. ``kyb-vetter/0.1.0``."""
+        return f"{self.project_name}/{version('kyb-vetter-core')}"
 
 
 @lru_cache(maxsize=1)
