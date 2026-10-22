@@ -9,7 +9,7 @@ with an audit trail that proves each verification happened.
 
 ## Layout
 
-```
+```txt
 packages/core/    domain: register clients, NIP/REGON/NRB validation, models, limits, audit
 apps/mcp/         MCP server (stdio locally, Streamable HTTP in the cloud)
 apps/api/         REST API (FastAPI)
@@ -42,10 +42,10 @@ Tests that reach real endpoints are marked `live` and excluded by default:
 
 Environment variables, prefix `APP_` (see `kyb_vetter_core.config`):
 
-| Variable | Default | Meaning |
-|----------|---------|---------|
+| Variable           | Default      | Meaning                                         |
+| ------------------ | ------------ | ----------------------------------------------- |
 | `APP_PROJECT_NAME` | `kyb-vetter` | product name used in strings and resource names |
-| `APP_DOMAIN` | `localhost` | public hostname of the hosted service |
+| `APP_DOMAIN`       | `localhost`  | public hostname of the hosted service           |
 
 ## Status
 

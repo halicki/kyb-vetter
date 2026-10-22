@@ -32,6 +32,11 @@ Read `SPEC.md` and `docs/adr/README.md` before any non-trivial task.
   mandatory for tool outputs.
 - CEIDG data concerns natural persons (GDPR): pass-through only, never stored.
 
+## Commits
+- Conventional Commits: `type(scope): summary` with types `feat`, `fix`,
+  `docs`, `chore`, `ci`, `refactor`, `test`, `build`. Lower-case imperative
+  summary. Never rewrite pushed history.
+
 ## Commands
 ```sh
 uv sync --all-packages

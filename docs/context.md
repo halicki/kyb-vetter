@@ -4,6 +4,7 @@ Durable facts about the product, users and the domain that are not derivable
 from the code. Keep entries short; date them.
 
 ## Product (2026-10-22)
+
 - Hosted MCP server + REST API for verifying Polish counterparties in public
   registers, with an audit trail (who verified what, when, with which
   official `requestId`). Users install nothing: they add the URL as a
@@ -14,6 +15,7 @@ from the code. Keep entries short; date them.
   quality and understood decisions matter more than speed.
 
 ## Domain constraints (2026-10-22)
+
 - MF VAT white list: `search` 100 requests/day/IP, `check` 5000/day/IP;
   exceeding blocks the IP until midnight. A hosted server shares one IP for
   all users, so limits are an architectural concern. The daily flat file
