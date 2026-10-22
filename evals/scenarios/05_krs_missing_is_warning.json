@@ -1,0 +1,33 @@
+{
+  "name": "krs missing is warning",
+  "tool": "verify_company",
+  "arguments": {
+    "nip": "1234563218"
+  },
+  "mocks": [
+    {
+      "url": "https://mf.example/api/search/nip/1234563218",
+      "fixture": "whitelist/search_found",
+      "patch": {
+        "result.subject.krs": "0000028860",
+        "result.subject.name": "ORLEN S.A."
+      }
+    },
+    {
+      "url": "https://krs.example/api/krs/OdpisAktualny/0000028860",
+      "status": 404,
+      "json": {
+        "status": 404
+      }
+    }
+  ],
+  "expect": {
+    "structured": {
+      "found": true,
+      "krs": null
+    },
+    "warnings": [
+      "KRS_NOT_FOUND"
+    ]
+  }
+}

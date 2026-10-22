@@ -1,0 +1,23 @@
+{
+  "name": "not on whitelist",
+  "tool": "verify_company",
+  "arguments": {
+    "nip": "1234563218"
+  },
+  "mocks": [
+    {
+      "url": "https://mf.example/api/search/nip/1234563218",
+      "fixture": "whitelist/search_missing"
+    }
+  ],
+  "expect": {
+    "structured": {
+      "found": false,
+      "vat": null,
+      "krs": null
+    },
+    "warnings": [
+      "NOT_IN_WHITELIST"
+    ]
+  }
+}

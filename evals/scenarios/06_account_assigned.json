@@ -1,0 +1,26 @@
+{
+  "name": "account assigned",
+  "tool": "check_bank_account",
+  "arguments": {
+    "nip": "1234563218",
+    "account": "PL61 1090 1014 0000 0712 1981 2874"
+  },
+  "mocks": [
+    {
+      "url": "https://mf.example/api/check/nip/1234563218/bank-account/61109010140000071219812874",
+      "fixture": "whitelist/check_tak"
+    },
+    {
+      "url": "https://mf.example/api2/status/nip/1234563218",
+      "fixture": "whitelist/status_czynny"
+    }
+  ],
+  "expect": {
+    "structured": {
+      "assigned": true,
+      "account": "61109010140000071219812874",
+      "vat_status": "active"
+    },
+    "warnings": []
+  }
+}

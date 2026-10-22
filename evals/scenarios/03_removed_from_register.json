@@ -1,0 +1,29 @@
+{
+  "name": "removed from register",
+  "tool": "verify_company",
+  "arguments": {
+    "nip": "1234563218"
+  },
+  "mocks": [
+    {
+      "url": "https://mf.example/api/search/nip/1234563218",
+      "fixture": "whitelist/search_found",
+      "patch": {
+        "result.subject.krs": "0000028860",
+        "result.subject.name": "ORLEN S.A.",
+        "result.subject.statusVat": "Niezarejestrowany",
+        "result.subject.removalDate": "2024-03-01"
+      }
+    },
+    {
+      "url": "https://krs.example/api/krs/OdpisAktualny/0000028860",
+      "fixture": "krs/0000028860"
+    }
+  ],
+  "expect": {
+    "warnings": [
+      "VAT_NOT_ACTIVE",
+      "VAT_REMOVED"
+    ]
+  }
+}

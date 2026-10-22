@@ -1,0 +1,12 @@
+{
+  "name": "invalid nip no quota",
+  "tool": "verify_company",
+  "arguments": {
+    "nip": "1234567890"
+  },
+  "mocks": [],
+  "expect": {
+    "is_error": true,
+    "error_contains": "checksum"
+  }
+}

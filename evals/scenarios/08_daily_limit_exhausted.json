@@ -1,0 +1,18 @@
+{
+  "name": "daily limit exhausted",
+  "tool": "verify_company",
+  "arguments": {
+    "nip": "1234563218"
+  },
+  "mocks": [
+    {
+      "url": "https://mf.example/api/search/nip/1234563218",
+      "status": 429,
+      "fixture": "whitelist/error_wl191"
+    }
+  ],
+  "expect": {
+    "is_error": true,
+    "error_contains": "midnight"
+  }
+}

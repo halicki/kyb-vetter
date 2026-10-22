@@ -1,0 +1,24 @@
+{
+  "name": "account not assigned",
+  "tool": "check_bank_account",
+  "arguments": {
+    "nip": "1234563218",
+    "account": "61109010140000071219812874"
+  },
+  "mocks": [
+    {
+      "url": "https://mf.example/api/check/nip/1234563218/bank-account/61109010140000071219812874",
+      "fixture": "whitelist/check_nie"
+    },
+    {
+      "url": "https://mf.example/api2/status/nip/1234563218",
+      "fixture": "whitelist/status_czynny"
+    }
+  ],
+  "expect": {
+    "structured": {
+      "assigned": false
+    },
+    "warnings": []
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "name": "active company with krs",
+  "tool": "verify_company",
+  "arguments": {
+    "nip": "1234563218"
+  },
+  "mocks": [
+    {
+      "url": "https://mf.example/api/search/nip/1234563218",
+      "fixture": "whitelist/search_found",
+      "patch": {
+        "result.subject.krs": "0000028860",
+        "result.subject.name": "ORLEN S.A."
+      }
+    },
+    {
+      "url": "https://krs.example/api/krs/OdpisAktualny/0000028860",
+      "fixture": "krs/0000028860"
+    }
+  ],
+  "expect": {
+    "structured": {
+      "found": true,
+      "vat.status": "active",
+      "krs.legal_form": "SPÓŁKA AKCYJNA",
+      "sources.0.request_id": "d2n10-84df1a1"
+    },
+    "warnings": [],
+    "forbidden_substrings": [
+      "pesel",
+      "PROKURA"
+    ]
+  }
+}
