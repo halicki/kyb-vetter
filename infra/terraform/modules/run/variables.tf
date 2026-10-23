@@ -3,6 +3,11 @@ variable "project_number" { type = string }
 variable "project_name" { type = string }
 variable "region" { type = string }
 variable "domain" { type = string }
+variable "api_domain" {
+  type        = string
+  description = "Public hostname of the REST API; empty means its run.app URL"
+  default     = ""
+}
 variable "mf_base_url" { type = string }
 variable "krs_base_url" { type = string }
 variable "extra_env" {

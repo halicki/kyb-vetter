@@ -23,6 +23,11 @@ variable "domain" {
   description = "Public hostname of the MCP service (e.g. mcp.example.dev); empty means the run.app URL only."
   default     = ""
 }
+variable "api_domain" {
+  type        = string
+  description = "Public hostname of the REST API (e.g. api.example.dev); empty means the run.app URL only (ADR-0020)."
+  default     = ""
+}
 variable "cloudflare_zone_id" {
   type        = string
   description = "Cloudflare zone holding `domain`; with `domain` set, creates the domain mapping and DNS record (ADR-0018)."

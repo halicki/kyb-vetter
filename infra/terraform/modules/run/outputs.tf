@@ -1,6 +1,9 @@
-output "service_name" { value = google_cloud_run_v2_service.mcp.name }
-output "service_uri" { value = google_cloud_run_v2_service.mcp.uri }
-output "run_host" { value = local.run_host }
+output "service_name" { value = google_cloud_run_v2_service.this["mcp"].name }
+output "service_uri" { value = google_cloud_run_v2_service.this["mcp"].uri }
+output "run_host" { value = local.run_hosts["mcp"] }
+output "api_service_name" { value = google_cloud_run_v2_service.this["api"].name }
+output "api_service_uri" { value = google_cloud_run_v2_service.this["api"].uri }
+output "api_run_host" { value = local.run_hosts["api"] }
 output "job_name" { value = google_cloud_run_v2_job.migrate.name }
 output "runtime_service_account_email" { value = google_service_account.runtime.email }
 output "runtime_service_account_name" { value = google_service_account.runtime.name }

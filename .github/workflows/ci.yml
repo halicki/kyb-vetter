@@ -131,3 +131,21 @@ jobs:
           status=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$url/mcp" \
             -H 'Content-Type: application/json' -d '{}')
           test "$status" = "401" || { echo "expected 401 from /mcp, got $status"; exit 1; }
+
+      - id: deploy_api
+        name: Roll the REST API (ADR-0020)
+        if: vars.GCP_API_SERVICE != ''
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          region: ${{ vars.GCP_REGION }}
+          service: ${{ vars.GCP_API_SERVICE }}
+          image: ${{ env.IMAGE }}:${{ github.sha }}
+
+      - name: Smoke test the REST API
+        if: vars.GCP_API_SERVICE != '' && vars.MCP_PUBLIC == 'true'
+        run: |
+          url="${{ steps.deploy_api.outputs.url }}"
+          curl -fsS "$url/health"
+          status=$(curl -s -o /dev/null -w '%{http_code}' "$url/v1/companies/1234563218")
+          test "$status" = "401" || { echo "expected 401 from /v1, got $status"; exit 1; }

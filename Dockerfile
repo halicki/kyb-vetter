@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1.7
-# One image for the MCP server (default CMD) and the worker jobs (`python -m kyb_vetter_worker ...`).
+# One image for the MCP server (default CMD), the REST API (`python -m kyb_vetter_api`) and the
+# worker jobs (`python -m kyb_vetter_worker ...`).
 # Base images are pinned by multi-arch index digest; Dependabot (.github/dependabot.yml) bumps them.
 FROM ghcr.io/astral-sh/uv:python3.15-trixie-slim@sha256:86a05dd8f19b21368fbb160c7e2ad0576780bebbe89114b6deeba2506f7612e1 AS builder
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=0 UV_NO_DEV=1
@@ -13,13 +14,14 @@ COPY apps/mcp/pyproject.toml apps/mcp/
 COPY apps/api/pyproject.toml apps/api/
 COPY apps/worker/pyproject.toml apps/worker/
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-workspace --package kyb-vetter-mcp --package kyb-vetter-worker
+    uv sync --frozen --no-install-workspace --package kyb-vetter-mcp --package kyb-vetter-api --package kyb-vetter-worker
 # Sources, then install the workspace members themselves.
 COPY packages/core/ packages/core/
 COPY apps/mcp/ apps/mcp/
+COPY apps/api/ apps/api/
 COPY apps/worker/ apps/worker/
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-editable --package kyb-vetter-mcp --package kyb-vetter-worker
+    uv sync --locked --no-editable --package kyb-vetter-mcp --package kyb-vetter-api --package kyb-vetter-worker
 
 FROM python:3.15-slim-trixie@sha256:044d5bd747976e21f8bc4d746c3479b19a84bb8ae6261b802acdd26b29036c93
 RUN groupadd --system app && useradd --system --gid app --home /app app \

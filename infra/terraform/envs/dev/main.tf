@@ -29,6 +29,7 @@ module "run" {
   project_name                  = var.project_name
   region                        = var.region
   domain                        = var.domain
+  api_domain                    = var.api_domain
   mf_base_url                   = var.mf_base_url
   krs_base_url                  = var.krs_base_url
   database_url_secret_id        = module.secrets.secret_ids["database-url"]
@@ -47,6 +48,17 @@ module "run" {
     var.invoker_members,
     ["serviceAccount:${var.project_name}-deployer@${local.project_id}.iam.gserviceaccount.com"],
   )
+}
+
+# REST API hostname (ADR-0020), same zone; skipped until configured.
+module "api_domain" {
+  count              = var.api_domain != "" && var.cloudflare_zone_id != "" ? 1 : 0
+  source             = "../../modules/domain"
+  project_id         = local.project_id
+  region             = var.region
+  service_name       = module.run.api_service_name
+  hostname           = var.api_domain
+  cloudflare_zone_id = var.cloudflare_zone_id
 }
 
 # Custom hostname (ADR-0018); skipped until the zone and hostname are configured.
