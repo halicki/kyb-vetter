@@ -13,7 +13,12 @@ from kyb_vetter_core.errors import QuotaExhaustedError
 from kyb_vetter_core.quota import BUCKET_SEARCH
 from kyb_vetter_core.storage import Stores, open_stores
 from kyb_vetter_core.storage.blobs import FilesystemBlobStore, MemoryBlobStore
-from kyb_vetter_core.storage.memory import MemoryAuditStore, MemoryCacheStore, MemoryQuotaStore
+from kyb_vetter_core.storage.memory import (
+    MemoryApiKeyStore,
+    MemoryAuditStore,
+    MemoryCacheStore,
+    MemoryQuotaStore,
+)
 
 from .test_verification import KRS, MF, NIP, ORLEN_KRS, TODAY
 
@@ -58,6 +63,7 @@ async def test_assembled_service_caches_guards_and_audits(
         audit=MemoryAuditStore(),
         cache=MemoryCacheStore(),
         blobs=MemoryBlobStore(),
+        apikeys=MemoryApiKeyStore(),
         persistent=False,
     )
 
@@ -88,6 +94,7 @@ async def test_assembled_service_refuses_when_guard_is_exhausted(
         audit=MemoryAuditStore(),
         cache=MemoryCacheStore(),
         blobs=MemoryBlobStore(),
+        apikeys=MemoryApiKeyStore(),
         persistent=False,
     )
     await stores.quota.exhaust(BUCKET_SEARCH, TODAY, limit=90)
@@ -151,6 +158,7 @@ async def test_assembled_service_answers_account_checks_from_the_flat_file(
         audit=MemoryAuditStore(),
         cache=MemoryCacheStore(),
         blobs=blobs,
+        apikeys=MemoryApiKeyStore(),
         persistent=False,
     )
     api = mock_api.get(url__regex=rf"{MF}/.*").respond(200, json={})

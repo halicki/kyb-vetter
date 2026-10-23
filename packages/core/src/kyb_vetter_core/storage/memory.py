@@ -10,8 +10,9 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from datetime import date, datetime
+    from uuid import UUID
 
-    from kyb_vetter_core.storage.ports import AuditEvent, CacheEntry
+    from kyb_vetter_core.storage.ports import ApiKeyRecord, AuditEvent, CacheEntry
 
 
 class MemoryQuotaStore:
@@ -62,3 +63,25 @@ class MemoryCacheStore:
 
     async def put(self, entry: CacheEntry) -> None:
         self._entries[(entry.source, entry.cache_key, entry.queried_date)] = entry
+
+
+class MemoryApiKeyStore:
+    def __init__(self) -> None:
+        self._keys: dict[UUID, ApiKeyRecord] = {}
+
+    async def insert(self, record: ApiKeyRecord) -> None:
+        self._keys[record.id] = record
+
+    async def find_by_prefix(self, prefix: str) -> ApiKeyRecord | None:
+        return next((k for k in self._keys.values() if k.prefix == prefix), None)
+
+    async def touch(self, key_id: UUID, *, used_at: datetime) -> None:
+        self._keys[key_id] = self._keys[key_id].model_copy(update={"last_used_at": used_at})
+
+    async def revoke(self, key_id: UUID, *, revoked_at: datetime) -> None:
+        self._keys[key_id] = self._keys[key_id].model_copy(update={"revoked_at": revoked_at})
+
+    async def list_for(self, principal: str) -> list[ApiKeyRecord]:
+        mine = [k for k in self._keys.values() if k.principal == principal]
+        mine.sort(key=lambda k: k.created_at)
+        return mine

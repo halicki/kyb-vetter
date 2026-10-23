@@ -214,6 +214,10 @@ path = "kyb_vetter_core.quota"
 depends_on = ["kyb_vetter_core.clients.whitelist", "kyb_vetter_core.errors", "kyb_vetter_core.identifiers"]
 
 [[tool.tach.modules]]
+path = "kyb_vetter_core.apikeys"
+depends_on = ["kyb_vetter_core.storage.ports"]
+
+[[tool.tach.modules]]
 path = "kyb_vetter_core.ratelimit"
 depends_on = ["kyb_vetter_core.clients.whitelist", "kyb_vetter_core.config", "kyb_vetter_core.errors"]
 

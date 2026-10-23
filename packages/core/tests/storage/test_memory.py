@@ -1,6 +1,15 @@
-from kyb_vetter_core.storage.memory import MemoryAuditStore, MemoryCacheStore, MemoryQuotaStore
+from kyb_vetter_core.storage.memory import (
+    MemoryApiKeyStore,
+    MemoryAuditStore,
+    MemoryCacheStore,
+    MemoryQuotaStore,
+)
 
-from .contract import audit_contract, cache_contract, quota_contract
+from .contract import apikey_contract, audit_contract, cache_contract, quota_contract
+
+
+async def test_memory_apikey_store_contract() -> None:
+    await apikey_contract(MemoryApiKeyStore())
 
 
 async def test_memory_quota_store_contract() -> None:

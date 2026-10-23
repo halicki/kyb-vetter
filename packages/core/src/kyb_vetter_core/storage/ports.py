@@ -46,6 +46,21 @@ class CacheEntry(BaseModel):
     expires_at: datetime
 
 
+class ApiKeyRecord(BaseModel):
+    """An API key as stored: identity, owner, lookup prefix and the hash of the full key."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: UUID
+    principal: str
+    name: str
+    prefix: str
+    key_hash: str
+    created_at: datetime
+    revoked_at: datetime | None
+    last_used_at: datetime | None
+
+
 class QuotaStore(Protocol):
     """Daily counters shared by every process behind one public IP."""
 
@@ -93,11 +108,28 @@ class CacheStore(Protocol):
         ...
 
 
+class ApiKeyStore(Protocol):
+    async def insert(self, record: ApiKeyRecord) -> None: ...
+
+    async def find_by_prefix(self, prefix: str) -> ApiKeyRecord | None: ...
+
+    async def touch(self, key_id: UUID, *, used_at: datetime) -> None:
+        """Record a successful use."""
+        ...
+
+    async def revoke(self, key_id: UUID, *, revoked_at: datetime) -> None: ...
+
+    async def list_for(self, principal: str) -> list[ApiKeyRecord]:
+        """All keys of ``principal`` (revoked ones included), oldest first."""
+        ...
+
+
 @dataclass(frozen=True)
 class Stores:
     quota: QuotaStore
     audit: AuditStore
     cache: CacheStore
     blobs: BlobStore
+    apikeys: ApiKeyStore
     persistent: bool
     """False when state lives in this process only (quota is then NOT shared across instances)."""

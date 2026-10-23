@@ -10,12 +10,12 @@ from typing import Any
 lazy import uuid
 lazy from collections.abc import AsyncGenerator
 
-from sqlalchemy import DateTime, Index, func, select
+from sqlalchemy import DateTime, Index, func, select, update
 from sqlalchemy.dialects.postgresql import JSONB, insert
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from kyb_vetter_core.storage.ports import AuditEvent, BlobStore, CacheEntry, Stores
+from kyb_vetter_core.storage.ports import ApiKeyRecord, AuditEvent, BlobStore, CacheEntry, Stores
 
 
 class Base(DeclarativeBase):
@@ -61,6 +61,20 @@ class CacheRow(Base):
     payload: Mapped[dict[str, Any]] = mapped_column(JSONB(), nullable=False)
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ApiKeyRow(Base):
+    __tablename__ = "api_keys"
+    __table_args__ = (Index("ix_api_keys_principal", "principal"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+    principal: Mapped[str] = mapped_column(nullable=False)
+    name: Mapped[str] = mapped_column(nullable=False)
+    prefix: Mapped[str] = mapped_column(nullable=False, unique=True)
+    key_hash: Mapped[str] = mapped_column(nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 type SessionFactory = async_sessionmaker[Any]
@@ -199,6 +213,55 @@ class PostgresCacheStore:
             await session.execute(stmt)
 
 
+class PostgresApiKeyStore:
+    def __init__(self, sessions: SessionFactory) -> None:
+        self._sessions = sessions
+
+    @staticmethod
+    def _record(row: ApiKeyRow) -> ApiKeyRecord:
+        return ApiKeyRecord(
+            id=row.id,
+            principal=row.principal,
+            name=row.name,
+            prefix=row.prefix,
+            key_hash=row.key_hash,
+            created_at=row.created_at,
+            revoked_at=row.revoked_at,
+            last_used_at=row.last_used_at,
+        )
+
+    async def insert(self, record: ApiKeyRecord) -> None:
+        async with self._sessions.begin() as session:
+            session.add(ApiKeyRow(**record.model_dump()))
+
+    async def find_by_prefix(self, prefix: str) -> ApiKeyRecord | None:
+        async with self._sessions() as session:
+            row = await session.scalar(select(ApiKeyRow).where(ApiKeyRow.prefix == prefix))
+        return None if row is None else self._record(row)
+
+    async def touch(self, key_id: uuid.UUID, *, used_at: datetime) -> None:
+        async with self._sessions.begin() as session:
+            await session.execute(
+                update(ApiKeyRow).where(ApiKeyRow.id == key_id).values(last_used_at=used_at)
+            )
+
+    async def revoke(self, key_id: uuid.UUID, *, revoked_at: datetime) -> None:
+        async with self._sessions.begin() as session:
+            await session.execute(
+                update(ApiKeyRow).where(ApiKeyRow.id == key_id).values(revoked_at=revoked_at)
+            )
+
+    async def list_for(self, principal: str) -> list[ApiKeyRecord]:
+        stmt = (
+            select(ApiKeyRow)
+            .where(ApiKeyRow.principal == principal)
+            .order_by(ApiKeyRow.created_at.asc())
+        )
+        async with self._sessions() as session:
+            rows = (await session.scalars(stmt)).all()
+        return [self._record(r) for r in rows]
+
+
 def make_engine(url: str) -> AsyncEngine:
     return create_async_engine(url, pool_pre_ping=True)
 
@@ -214,6 +277,7 @@ async def open_postgres_stores(url: str, *, blobs: BlobStore) -> AsyncGenerator[
             audit=PostgresAuditStore(sessions),
             cache=PostgresCacheStore(sessions),
             blobs=blobs,
+            apikeys=PostgresApiKeyStore(sessions),
             persistent=True,
         )
     finally:

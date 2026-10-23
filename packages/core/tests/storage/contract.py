@@ -3,7 +3,15 @@
 from datetime import UTC, date, datetime, timedelta
 from uuid import uuid4
 
-from kyb_vetter_core.storage.ports import AuditEvent, AuditStore, CacheEntry, CacheStore, QuotaStore
+from kyb_vetter_core.storage.ports import (
+    ApiKeyRecord,
+    ApiKeyStore,
+    AuditEvent,
+    AuditStore,
+    CacheEntry,
+    CacheStore,
+    QuotaStore,
+)
 
 DAY = date(2026, 10, 22)
 NOW = datetime(2026, 10, 22, 12, 0, tzinfo=UTC)
@@ -92,3 +100,42 @@ async def cache_contract(store: CacheStore) -> None:
     got = await store.get("mf-whitelist", "1234563218", DAY, now=NOW + timedelta(hours=2))
     assert got is not None
     assert got.payload == {"subject": {"name": "X"}}
+
+
+def make_key(prefix: str = "abcdefgh", principal: str = "auth0|alice") -> ApiKeyRecord:
+    return ApiKeyRecord(
+        id=uuid4(),
+        principal=principal,
+        name="ci bot",
+        prefix=prefix,
+        key_hash="cd" * 32,
+        created_at=NOW,
+        revoked_at=None,
+        last_used_at=None,
+    )
+
+
+async def apikey_contract(store: ApiKeyStore) -> None:
+    key = make_key()
+    other = make_key(prefix="zzzzzzzz", principal="auth0|bob")
+    await store.insert(key)
+    await store.insert(other)
+
+    assert await store.find_by_prefix("abcdefgh") == key
+    assert await store.find_by_prefix("nope0000") is None
+
+    used = NOW + timedelta(minutes=5)
+    await store.touch(key.id, used_at=used)
+    touched = await store.find_by_prefix("abcdefgh")
+    assert touched is not None
+    assert touched.last_used_at == used
+    assert touched.revoked_at is None
+
+    revoked_at = NOW + timedelta(minutes=10)
+    await store.revoke(key.id, revoked_at=revoked_at)
+    revoked = await store.find_by_prefix("abcdefgh")
+    assert revoked is not None
+    assert revoked.revoked_at == revoked_at
+    assert await store.list_for("auth0|alice") == [revoked]
+    assert await store.list_for("auth0|bob") == [other]
+    assert await store.list_for("nobody") == []

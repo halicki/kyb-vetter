@@ -17,19 +17,20 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from kyb_vetter_core.config import Settings
 from kyb_vetter_core.storage import Stores, open_stores
 from kyb_vetter_core.storage.postgres import (
+    PostgresApiKeyStore,
     PostgresAuditStore,
     PostgresCacheStore,
     PostgresQuotaStore,
     make_engine,
 )
 
-from .contract import audit_contract, cache_contract, quota_contract
+from .contract import apikey_contract, audit_contract, cache_contract, quota_contract
 
 pytestmark = pytest.mark.db
 
 DATABASE_URL = os.environ.get("APP_TEST_DATABASE_URL")
 ALEMBIC_INI = Path(__file__).resolve().parents[2] / "alembic.ini"
-TABLES = ("quota_counters", "audit_events", "registry_cache")
+TABLES = ("quota_counters", "audit_events", "registry_cache", "api_keys")
 
 
 def _migrate(connection: Connection, target: str) -> None:
@@ -65,6 +66,10 @@ async def test_audit_store_contract(sessions: async_sessionmaker) -> None:
 
 async def test_cache_store_contract(sessions: async_sessionmaker) -> None:
     await cache_contract(PostgresCacheStore(sessions))
+
+
+async def test_apikey_store_contract(sessions: async_sessionmaker) -> None:
+    await apikey_contract(PostgresApiKeyStore(sessions))
 
 
 async def test_migrations_round_trip_leaves_a_clean_schema(sessions: async_sessionmaker) -> None:

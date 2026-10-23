@@ -7,7 +7,12 @@ from typing import TYPE_CHECKING
 lazy from collections.abc import AsyncGenerator
 
 from kyb_vetter_core.storage.blobs import FilesystemBlobStore, MemoryBlobStore
-from kyb_vetter_core.storage.memory import MemoryAuditStore, MemoryCacheStore, MemoryQuotaStore
+from kyb_vetter_core.storage.memory import (
+    MemoryApiKeyStore,
+    MemoryAuditStore,
+    MemoryCacheStore,
+    MemoryQuotaStore,
+)
 from kyb_vetter_core.storage.ports import Stores
 
 if TYPE_CHECKING:
@@ -42,6 +47,7 @@ async def open_stores(settings: Settings) -> AsyncGenerator[Stores]:
             audit=MemoryAuditStore(),
             cache=MemoryCacheStore(),
             blobs=blobs,
+            apikeys=MemoryApiKeyStore(),
             persistent=False,
         )
         return
