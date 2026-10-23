@@ -120,17 +120,14 @@ jobs:
           service: ${{ vars.GCP_SERVICE }}
           image: ${{ env.IMAGE }}:${{ github.sha }}
 
-      - id: id_token
-        name: Mint an ID token for the service
-        uses: google-github-actions/auth@v3
-        with:
-          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
-          service_account: ${{ vars.GCP_DEPLOYER_SA }}
-          token_format: id_token
-          id_token_audience: ${{ steps.deploy.outputs.url }}
-          id_token_include_email: true
-
       - name: Smoke test
+        # /health is public; /mcp must challenge unauthenticated callers (ADR-0017). Before the
+        # service is opened (public = false in Terraform) both answer 403 from Cloud Run IAM, so
+        # the check is skipped unless MCP_PUBLIC is set to "true" in the environment variables.
+        if: vars.MCP_PUBLIC == 'true'
         run: |
-          curl -fsS -H "Authorization: Bearer ${{ steps.id_token.outputs.id_token }}" \
-            "${{ steps.deploy.outputs.url }}/health"
+          url="${{ steps.deploy.outputs.url }}"
+          curl -fsS "$url/health"
+          status=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$url/mcp" \
+            -H 'Content-Type: application/json' -d '{}')
+          test "$status" = "401" || { echo "expected 401 from /mcp, got $status"; exit 1; }

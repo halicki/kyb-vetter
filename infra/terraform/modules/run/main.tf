@@ -13,10 +13,14 @@ locals {
     APP_DOMAIN       = var.domain == "" ? local.run_host : var.domain
     APP_MF_BASE_URL  = var.mf_base_url
     APP_KRS_BASE_URL = var.krs_base_url
-    # Cloud Run terminates TLS on platform-owned hostnames: the Host header is trustworthy here,
-    # and the legacy URL's hash cannot be allow-listed ahead of time.
-    APP_HOST_CHECK = "false"
+    # With a custom domain the Host allow-list is enforced again (ADR-0018): the domain plus the
+    # deterministic run.app host (CI smoke test, clients that only take run.app URLs). Without a
+    # domain the platform-owned hostname is trustworthy and the legacy *.a.run.app hash cannot be
+    # allow-listed ahead of time, so the check stays off.
+    APP_HOST_CHECK          = var.domain == "" ? "false" : "true"
+    APP_EXTRA_ALLOWED_HOSTS = jsonencode([local.run_host])
   }, var.extra_env)
+  invokers = var.public ? ["allUsers"] : var.invoker_members
 }
 
 # The image is rolled by CI (deploy-cloudrun); Terraform owns everything else.
@@ -73,9 +77,9 @@ resource "google_cloud_run_v2_service" "mcp" {
   }
 }
 
-# Until OAuth lands (M6) only the administrators may invoke the service.
+# Public once the app enforces OAuth (ADR-0017); administrators and the CI deployer otherwise.
 resource "google_cloud_run_v2_service_iam_member" "invokers" {
-  for_each = toset(var.invoker_members)
+  for_each = toset(local.invokers)
   project  = var.project_id
   location = var.region
   name     = google_cloud_run_v2_service.mcp.name

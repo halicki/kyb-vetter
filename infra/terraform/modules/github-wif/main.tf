@@ -46,12 +46,3 @@ resource "google_service_account_iam_member" "deployer_acts_as_runtime" {
   role               = "roles/iam.serviceAccountUser"
   member             = "serviceAccount:${google_service_account.deployer.email}"
 }
-
-# Administrators mint ID tokens for the service by impersonating the deployer (user tokens from a
-# non-default gcloud OAuth client are rejected by Cloud Run).
-resource "google_service_account_iam_member" "admin_token_creators" {
-  for_each           = toset(var.token_creator_members)
-  service_account_id = google_service_account.deployer.name
-  role               = "roles/iam.serviceAccountTokenCreator"
-  member             = each.value
-}

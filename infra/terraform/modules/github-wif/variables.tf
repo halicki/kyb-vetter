@@ -8,8 +8,3 @@ variable "runtime_service_account_name" {
   type        = string
   description = "Full resource name of the Cloud Run runtime service account"
 }
-variable "token_creator_members" {
-  type        = list(string)
-  description = "Members allowed to mint ID tokens as the deployer (for calling the IAM-protected service)"
-  default     = []
-}

@@ -15,3 +15,5 @@ provider "google" {
 }
 
 provider "neon" {} # NEON_API_KEY from the environment
+
+provider "cloudflare" {} # CLOUDFLARE_API_TOKEN from the environment (Zone:DNS:Edit on the zone)

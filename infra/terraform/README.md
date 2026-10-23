@@ -14,6 +14,8 @@ envs/dev/bootstrap/   project + state bucket, LOCAL state (git-ignored)
 1. `gcloud auth login && gcloud auth application-default login`
 2. Neon API key in the macOS Keychain (`security add-generic-password -s kyb-vetter-neon ...`),
    exported as `NEON_API_KEY` before running Terraform (the fish function `tf-env` does this).
+   Same for the Cloudflare token (`-s kyb-vetter-cloudflare`, exported as `CLOUDFLARE_API_TOKEN`):
+   an API token with `Zone:DNS:Edit` on the product zone only.
 3. `envs/dev/terraform.tfvars` and `envs/dev/bootstrap/terraform.tfvars` (git-ignored): copy
    `dev.example.tfvars` and fill in `billing_account`, `project_suffix`, `neon_org_id`, e-mails.
 
@@ -56,8 +58,34 @@ Outputs feed the GitHub Actions variables (not secrets) used by the deploy job:
 | `GCP_SERVICE` | `service_name` |
 | `GCP_MIGRATE_JOB` | `migrate_job_name` |
 | `GCP_FLATFILE_JOB` | `flatfile_job_name` |
+| `MCP_PUBLIC` | `"true"` once `public = true` has been applied (enables the smoke test) |
 
 Set them with `gh variable set NAME --body "$(terraform -chdir=... output -raw ...)"`.
+
+## Domain (ADR-0018)
+
+One-time, by hand: buy the zone in Cloudflare Registrar, create the API token above, and verify
+the zone for the Google account that runs Terraform (`gcloud domains verify <zone>` opens Search
+Console; add the TXT record it shows in the Cloudflare zone). Then set `domain` (e.g.
+`mcp.<zone>`) and `cloudflare_zone_id` (Cloudflare dashboard, zone overview) in `terraform.tfvars`
+and apply: the `domain` module creates the Cloud Run domain mapping and a DNS-only CNAME to
+`ghs.googlehosted.com`. The Google-managed certificate usually takes about 15 minutes, up to
+24 hours; check with
+
+```sh
+gcloud beta run domain-mappings describe --domain "$(terraform -chdir=infra/terraform/envs/dev output -raw public_url | sed 's#https://##')" \
+  --region europe-west1 --project "$(terraform -chdir=infra/terraform/envs/dev output -raw project_id)"
+```
+
+With `domain` set the app enforces its Host allow-list again (`APP_HOST_CHECK=true`); the
+deterministic `run.app` host stays allowed through `APP_EXTRA_ALLOWED_HOSTS`.
+
+## Auth (ADR-0017)
+
+`auth_issuer` (the Auth0 tenant URL with its trailing slash) switches the app into OAuth
+resource-server mode: `APP_AUTH_ISSUER` and `APP_AUTH_AUDIENCE = https://<domain>/mcp` are set on
+the service. Only then may `public = true` grant `allUsers` the invoker role (a validation rule
+refuses the combination without an issuer). Tenant setup is a checklist in `docs/auth0.md`.
 
 ## Who deploys what
 
@@ -68,17 +96,16 @@ Set them with `gh variable set NAME --body "$(terraform -chdir=... output -raw .
 
 ## Calling the dev service
 
-The service has no public invoker until OAuth lands (M6). Cloud Run accepts ID tokens whose
-audience is the service URL; plain `gcloud auth print-identity-token` for a user account is
-rejected when gcloud runs with a non-default OAuth client. Mint the token by impersonating the
-deployer service account (admins hold `roles/iam.serviceAccountTokenCreator` on it):
+Once `public = true` is applied, `/health` is public and `/mcp` answers `401` with a
+`WWW-Authenticate` challenge pointing at `/.well-known/oauth-protected-resource/mcp`; any OAuth
+capable MCP client (Inspector, Claude, Gemini CLI) completes the Auth0 flow from there:
 
 ```sh
-URL=$(terraform -chdir=infra/terraform/envs/dev output -raw service_uri)
-SA=$(terraform -chdir=infra/terraform/envs/dev output -raw deployer_service_account)
-TOK=$(gcloud auth print-identity-token --impersonate-service-account="$SA" --audiences="$URL")
-curl -H "Authorization: Bearer $TOK" "$URL/health"
+URL=$(terraform -chdir=infra/terraform/envs/dev output -raw public_url)
+curl "$URL/health"
+curl -i -X POST "$URL/mcp" -H 'Content-Type: application/json' -d '{}'   # 401 + challenge
+npx -y @modelcontextprotocol/inspector --transport http "$URL/mcp"       # browser OAuth flow
 ```
 
-The MCP Inspector CLI starts its own OAuth flow on 401, so for scripted checks use the Python
-SDK client with an `Authorization` header (see `apps/mcp/README.md`).
+Before that (`public = false`) only `invoker_members` and the CI deployer may call the service,
+and Cloud Run answers `403` to everyone else; the CI smoke test is skipped until `MCP_PUBLIC` is set.

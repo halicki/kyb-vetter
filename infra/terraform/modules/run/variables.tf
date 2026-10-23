@@ -16,3 +16,8 @@ variable "bootstrap_image" {
 variable "database_url_secret_id" { type = string }
 variable "database_url_direct_secret_id" { type = string }
 variable "invoker_members" { type = list(string) }
+variable "public" {
+  type        = bool
+  description = "allUsers may invoke the service (auth is enforced by the app)"
+  default     = false
+}

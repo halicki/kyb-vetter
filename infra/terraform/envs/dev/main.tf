@@ -35,11 +35,29 @@ module "run" {
   database_url_direct_secret_id = module.secrets.secret_ids["database-url-direct"]
   # Administrators plus the CI deployer (smoke test after each roll-out). The deployer's e-mail is
   # deterministic, which avoids a dependency cycle with module.github_wif.
-  extra_env = { APP_FLATFILE_BUCKET = "${local.project_id}-flatfile" }
+  extra_env = merge(
+    { APP_FLATFILE_BUCKET = "${local.project_id}-flatfile" },
+    var.auth_issuer == "" ? {} : {
+      APP_AUTH_ISSUER   = var.auth_issuer
+      APP_AUTH_AUDIENCE = "https://${var.domain == "" ? module.run.run_host : var.domain}/mcp"
+    },
+  )
+  public = var.public
   invoker_members = concat(
     var.invoker_members,
     ["serviceAccount:${var.project_name}-deployer@${local.project_id}.iam.gserviceaccount.com"],
   )
+}
+
+# Custom hostname (ADR-0018); skipped until the zone and hostname are configured.
+module "domain" {
+  count              = var.domain != "" && var.cloudflare_zone_id != "" ? 1 : 0
+  source             = "../../modules/domain"
+  project_id         = local.project_id
+  region             = var.region
+  service_name       = module.run.service_name
+  hostname           = var.domain
+  cloudflare_zone_id = var.cloudflare_zone_id
 }
 
 # The runtime SA is created in module.run; secrets need its email, run needs the secret ids:
@@ -62,7 +80,6 @@ module "github_wif" {
   project_name                 = var.project_name
   github_repo                  = var.github_repo
   runtime_service_account_name = module.run.runtime_service_account_name
-  token_creator_members        = var.invoker_members
 }
 
 module "budget" {
