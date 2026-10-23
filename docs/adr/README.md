@@ -29,3 +29,4 @@ acceptance - supersede with a new ADR instead.
 | [0013](0013-persistence-and-quota-guard.md) | Persistence, quota guard, audit log and cache | Accepted |
 | [0014](0014-cloud-database-neon.md) | Cloud database: Neon over Cloud SQL | Accepted |
 | [0015](0015-infrastructure-dev.md) | Development infrastructure: two Terraform roots, keyless CI, image rolls | Accepted |
+| [0016](0016-flat-file.md) | Daily MF flat file as the primary source for account checks | Accepted |

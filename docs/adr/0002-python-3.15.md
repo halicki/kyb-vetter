@@ -35,3 +35,9 @@ ruff 0.17.1, ty 0.0.91) declare no upper bound.
   record it here and decide between waiting and pinning 3.14.
 - ruff infers `target-version = py315` from `requires-python`; ty is pinned to
   `python-version = "3.15"` explicitly.
+
+## Update 2026-10-23
+
+`py7zr` (ADR-0016) pulls `pybcj`, `pyppmd` and `inflate64`, which have no
+cp315 wheels; the Docker builder stage compiles them with `gcc`. Local `uv sync`
+builds them too (Xcode CLT present). Staying on 3.15.

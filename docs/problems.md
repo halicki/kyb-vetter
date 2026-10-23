@@ -1,7 +1,7 @@
 # Open and closed problems
 
 ## Open
-- (2026-10-22) MF flat-file specification (hash algorithm, virtual-account
+- RESOLVED 2026-10-23 (ADR-0016): MF flat-file specification (hash algorithm, virtual-account
   masks, integrity check) could not be read from the official site (JS-only
   page, PDF not text-extractable). Needed for milestone 5; try the PDF with a
   proper extractor or the HTML spec on the registry site.
@@ -39,3 +39,10 @@
 - ADC quota project must point at a project with open billing, otherwise the GCS backend fails with `UserProjectAccountProblem`; documented in `infra/terraform/README.md`.
 - `neondatabase/neon` provider: check the registry each milestone and switch the `source` when published.
 - Host allow-listing is off on Cloud Run (`APP_HOST_CHECK=false`); revisit when a custom domain is attached in M6 (then allow-list the domain and turn the check back on).
+
+## Open since M5 (2026-10-23)
+
+- The flat file also lists `date + NIP` digests for taxpayers without accounts; `verify_company`/status could use them without quota (not implemented).
+- The index keeps 16-byte digest prefixes; a false positive needs a 128-bit collision (odds ~1e-26 per day), accepted.
+- The file for day D is published ~22:10 UTC on D-1 while the service uses it from the moment the job runs (01:15 Warsaw); between midnight and the job the index is one day old. Acceptable: `queried_date` on the receipt names the file's day.
+- `storage/gcs.py` has no unit tests (needs real credentials); it is exercised by the deployed job and a `live` test.

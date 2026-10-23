@@ -53,3 +53,10 @@ Stable codes returned in `warnings[].code`; messages are free text for humans.
 | `wl_status` | 50 000 | 45 000 | `check_bank_account` status lookup (1 h cache) |
 
 Days follow Europe/Warsaw. `verification_history` and cache hits cost nothing.
+
+## Flat file facts (verified 2026-10-23)
+
+- URL `https://wykazpodatnikowvat.mf.gov.pl/plikplaski/YYYYMMDD.7z`, ~250 MB, 30 days kept, published ~22:10 UTC the evening before the file date (spec: target 00:01).
+- Contents: `naglowek` (date, 5000 transformations, schema), 3.33 M active + 0.35 M exempt SHA-512 digests (sorted), 1 506 bank masks, sidecar `<date>.json.sha512sum`.
+- Digest = SHA-512 iterated 5 000 times over the hex text of `YYYYMMDD + NIP + NRB` (or `YYYYMMDD + NIP` without an account). Masks: positions 2-9 routing number, `Y` substituted from the account, `X` kept.
+- Spec PDF: `wykazpodatnikowvat.mf.gov.pl/plikplaski/Specyfikacja_techniczna_pliku_płaskiego_2026_09_30.pdf`; the site also offers a SHA-512 calculator for cross-checks.
