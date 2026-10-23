@@ -468,7 +468,7 @@ async def test_verify_company_records_an_audit_event(
 
     await service.verify_company(NIP, principal="alice")
 
-    events = await audit_store.history(NIP, limit=5)
+    events = await audit_store.history(NIP, principal="alice", limit=5)
     assert len(events) == 1
     assert events[0].principal == "alice"
     assert events[0].tool == "verify_company"
@@ -488,7 +488,7 @@ async def test_failed_calls_are_audited_too(
     with pytest.raises(DailyLimitExceededError):
         await service.verify_company(NIP)
 
-    events = await audit_store.history(NIP, limit=5)
+    events = await audit_store.history(NIP, principal="local", limit=5)
     assert [e.outcome for e in events] == ["error"]
     assert events[0].error_code == "WL-191"
     assert events[0].principal == "local"
@@ -500,7 +500,7 @@ async def test_invalid_nip_is_audited_under_the_raw_input(
     with pytest.raises(InvalidNipError):
         await service.verify_company("PL 123-456-78-90")
 
-    events = await audit_store.history("1234567890", limit=5)
+    events = await audit_store.history("1234567890", principal="local", limit=5)
     assert events
     assert events[0].error_code == "INVALID_INPUT"
 
@@ -520,9 +520,9 @@ async def test_verification_history_lists_newest_first_with_summary(
         200, json=fixture_json("whitelist/status_czynny")
     )
 
-    await service.verify_company(NIP)
-    await service.check_bank_account(NIP, NRB)
-    history = await service.verification_history(NIP, limit=10)
+    await service.verify_company(NIP, principal="alice")
+    await service.check_bank_account(NIP, NRB, principal="alice")
+    history = await service.verification_history(NIP, principal="alice", limit=10)
 
     assert history.nip == NIP
     assert history.persistent is False
@@ -537,10 +537,22 @@ async def test_verification_history_lists_newest_first_with_summary(
 
 
 async def test_verification_history_limit_and_invalid_nip(service: VerificationService) -> None:
-    history = await service.verification_history(NIP, limit=1)
+    history = await service.verification_history(NIP, principal="local", limit=1)
     assert history.entries == ()
     with pytest.raises(InvalidNipError):
-        await service.verification_history("1234567890")
+        await service.verification_history("1234567890", principal="local")
+
+
+async def test_verification_history_shows_only_the_callers_own_rows(
+    service: VerificationService, mock_api: respx.MockRouter, wl_found: dict[str, Any]
+) -> None:
+    wl_found["result"]["subject"]["krs"] = None
+    _mock_wl_search(mock_api, wl_found)
+
+    await service.verify_company(NIP, principal="alice")
+
+    assert len((await service.verification_history(NIP, principal="alice")).entries) == 1
+    assert (await service.verification_history(NIP, principal="bob")).entries == ()
 
 
 # --- flat file --------------------------------------------------------------

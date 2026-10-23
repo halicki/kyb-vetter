@@ -70,6 +70,9 @@ class Settings(BaseSettings):
     """Additional ``Host`` values accepted by the hosted transport (JSON list in APP_EXTRA_ALLOWED_HOSTS)."""
 
     host_check: bool = True
+    """Reject requests whose ``Host`` is not allow-listed (DNS-rebinding protection). Off behind
+    a TLS-terminating platform such as Cloud Run, where the hostname is fixed by the platform."""
+
     flatfile_bucket: str | None = None
     """GCS bucket holding the daily flat-file index (APP_FLATFILE_BUCKET); worker writes, service reads."""
 
@@ -78,8 +81,14 @@ class Settings(BaseSettings):
 
     mf_flatfile_base_url: str = "https://wykazpodatnikowvat.mf.gov.pl/plikplaski"
     """Where the ministry publishes ``YYYYMMDD.7z`` (APP_MF_FLATFILE_BASE_URL)."""
-    """Reject requests whose ``Host`` is not allow-listed (DNS-rebinding protection). Off behind
-    a TLS-terminating platform such as Cloud Run, where the hostname is fixed by the platform."""
+
+    auth_issuer: str | None = None
+    """OAuth authorization server that issues our access tokens (APP_AUTH_ISSUER), kept verbatim
+    because the ``iss`` claim is compared as a string (Auth0 ends with ``/``). Unset = no auth."""
+
+    auth_audience: str | None = None
+    """Resource identifier the tokens must carry in ``aud`` (APP_AUTH_AUDIENCE); defaults to the
+    public MCP URL. This is also the RFC 9728 ``resource`` the server advertises."""
 
     @field_validator("mf_base_url", "krs_base_url")
     @classmethod
@@ -91,6 +100,20 @@ class Settings(BaseSettings):
         """Base URL of the hosted service; plain http only for localhost."""
         scheme = "http" if self.domain == "localhost" else "https"
         return f"{scheme}://{self.domain}"
+
+    @property
+    def auth_enabled(self) -> bool:
+        return self.auth_issuer is not None
+
+    @property
+    def auth_jwks_url(self) -> str:
+        """JWKS endpoint of the issuer (OIDC discovery location), e.g. ``https://idp/.well-known/jwks.json``."""
+        return f"{(self.auth_issuer or '').rstrip('/')}/.well-known/jwks.json"
+
+    @property
+    def auth_resource_url(self) -> str:
+        """Our OAuth resource identifier: ``auth_audience`` or ``<public_base_url>/mcp``."""
+        return self.auth_audience or f"{self.public_base_url}/mcp"
 
     @property
     def user_agent(self) -> str:

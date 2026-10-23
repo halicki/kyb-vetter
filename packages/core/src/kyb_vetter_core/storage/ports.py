@@ -66,8 +66,8 @@ class QuotaStore(Protocol):
 class AuditStore(Protocol):
     async def record(self, event: AuditEvent) -> None: ...
 
-    async def history(self, nip: str, *, limit: int) -> list[AuditEvent]:
-        """Events for ``nip``, newest first."""
+    async def history(self, nip: str, *, principal: str, limit: int) -> list[AuditEvent]:
+        """Events for ``nip`` recorded for ``principal``, newest first. Never cross-user."""
         ...
 
 

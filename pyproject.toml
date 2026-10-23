@@ -184,6 +184,10 @@ path = "kyb_vetter_core.identifiers"
 depends_on = ["kyb_vetter_core.errors"]
 
 [[tool.tach.modules]]
+path = "kyb_vetter_core.auth"
+depends_on = []  # token verification is self-contained: PyJWT + httpx only
+
+[[tool.tach.modules]]
 path = "kyb_vetter_core.storage"
 depends_on = [
     "kyb_vetter_core.storage.blobs",

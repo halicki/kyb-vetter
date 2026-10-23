@@ -10,12 +10,15 @@ NOW = datetime(2026, 10, 22, 12, 0, tzinfo=UTC)
 
 
 def make_event(
-    nip: str = "1234563218", ts: datetime = NOW, tool: str = "verify_company"
+    nip: str = "1234563218",
+    ts: datetime = NOW,
+    tool: str = "verify_company",
+    principal: str = "local",
 ) -> AuditEvent:
     return AuditEvent(
         id=uuid4(),
         ts=ts,
-        principal="local",
+        principal=principal,
         tool=tool,
         nip=nip,
         input={"nip": nip},
@@ -50,16 +53,18 @@ async def audit_contract(store: AuditStore) -> None:
     older = make_event(ts=NOW - timedelta(hours=1))
     newer = make_event(ts=NOW, tool="check_bank_account")
     other = make_event(nip="7740001454")
-    for event in (older, newer, other):
+    someone_else = make_event(ts=NOW + timedelta(hours=1), principal="alice")
+    for event in (older, newer, other, someone_else):
         await store.record(event)
 
-    history = await store.history("1234563218", limit=10)
-    assert [e.id for e in history] == [newer.id, older.id]  # newest first
+    history = await store.history("1234563218", principal="local", limit=10)
+    assert [e.id for e in history] == [newer.id, older.id]  # newest first, own rows only
     assert history[0].tool == "check_bank_account"
     assert history[0].result == {"found": True}
     assert history[0].ts == NOW
-    assert await store.history("1234563218", limit=1) == [newer]
-    assert await store.history("0000000000", limit=10) == []
+    assert await store.history("1234563218", principal="local", limit=1) == [newer]
+    assert await store.history("1234563218", principal="alice", limit=10) == [someone_else]
+    assert await store.history("0000000000", principal="local", limit=10) == []
 
 
 async def cache_contract(store: CacheStore) -> None:

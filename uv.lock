@@ -724,6 +724,7 @@ dependencies = [
     { name = "py7zr" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+    { name = "pyjwt", extra = ["crypto"] },
     { name = "sqlalchemy", extra = ["asyncio"] },
 ]
 
@@ -737,6 +738,7 @@ requires-dist = [
     { name = "py7zr", specifier = ">=1.1" },
     { name = "pydantic", specifier = ">=2.14" },
     { name = "pydantic-settings", specifier = ">=2.16" },
+    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.15" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.1" },
 ]
 

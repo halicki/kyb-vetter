@@ -42,8 +42,8 @@ class MemoryAuditStore:
     async def record(self, event: AuditEvent) -> None:
         self._events.append(event)
 
-    async def history(self, nip: str, *, limit: int) -> list[AuditEvent]:
-        matching = [e for e in self._events if e.nip == nip]
+    async def history(self, nip: str, *, principal: str, limit: int) -> list[AuditEvent]:
+        matching = [e for e in self._events if e.nip == nip and e.principal == principal]
         matching.sort(key=lambda e: e.ts, reverse=True)
         return matching[:limit]
 

@@ -385,10 +385,16 @@ class VerificationService:
         )
         return result
 
-    async def verification_history(self, nip: str, *, limit: int = 20) -> VerificationHistory:
-        """Past invocations for ``nip`` recorded by this server, newest first."""
+    async def verification_history(
+        self, nip: str, *, principal: str, limit: int = 20
+    ) -> VerificationHistory:
+        """Past invocations of ``principal`` for ``nip`` on this server, newest first.
+
+        ``principal`` is required on purpose: history is per user (ADR-0017) and a
+        forgotten argument must not fall back to everyone's rows.
+        """
         clean = validate_nip(nip)
-        events = await self._audit.history(clean, limit=limit)
+        events = await self._audit.history(clean, principal=principal, limit=limit)
         return VerificationHistory(
             nip=clean,
             persistent=self._persistent,

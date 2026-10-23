@@ -56,7 +56,7 @@ async def test_record_success_stores_result_hash_and_receipts() -> None:
     assert event.result is not None
     assert event.result["assigned"] is True
     assert event.response_sha256 == recorder.digest(result)
-    assert await store.history(NIP, limit=5) == [event]
+    assert await store.history(NIP, principal="local", limit=5) == [event]
 
 
 async def test_record_error_classifies_exceptions() -> None:
@@ -85,7 +85,7 @@ async def test_record_error_classifies_exceptions() -> None:
         assert event.result is None
         assert event.response_sha256 is None
 
-    assert len(await store.history(NIP, limit=10)) == 4
+    assert len(await store.history(NIP, principal="local", limit=10)) == 4
 
 
 def test_digest_is_stable_for_equal_results() -> None:

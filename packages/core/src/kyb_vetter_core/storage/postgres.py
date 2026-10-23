@@ -32,7 +32,10 @@ class QuotaCounterRow(Base):
 
 class AuditEventRow(Base):
     __tablename__ = "audit_events"
-    __table_args__ = (Index("ix_audit_events_nip_ts", "nip", "ts"),)
+    __table_args__ = (
+        Index("ix_audit_events_nip_ts", "nip", "ts"),
+        Index("ix_audit_events_principal_nip_ts", "principal", "nip", "ts"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
     ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -120,10 +123,10 @@ class PostgresAuditStore:
         async with self._sessions.begin() as session:
             session.add(row)
 
-    async def history(self, nip: str, *, limit: int) -> list[AuditEvent]:
+    async def history(self, nip: str, *, principal: str, limit: int) -> list[AuditEvent]:
         stmt = (
             select(AuditEventRow)
-            .where(AuditEventRow.nip == nip)
+            .where(AuditEventRow.nip == nip, AuditEventRow.principal == principal)
             .order_by(AuditEventRow.ts.desc())
             .limit(limit)
         )

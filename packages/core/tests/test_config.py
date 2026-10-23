@@ -100,3 +100,41 @@ def test_flat_file_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.mf_flatfile_base_url == "https://wykazpodatnikowvat.mf.gov.pl/plikplaski"
     monkeypatch.setenv("APP_FLATFILE_BUCKET", "bucket-1")
     assert Settings().flatfile_bucket == "bucket-1"
+
+
+def test_auth_is_off_unless_an_issuer_is_configured(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("APP_AUTH_ISSUER", raising=False)
+    monkeypatch.delenv("APP_AUTH_AUDIENCE", raising=False)
+
+    settings = Settings(domain="mcp.acme.example")
+
+    assert settings.auth_enabled is False
+    assert settings.auth_resource_url == "https://mcp.acme.example/mcp"
+
+
+def test_auth_settings_derive_jwks_and_audience_from_issuer_and_domain(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("APP_AUTH_ISSUER", "https://tenant.eu.auth0.com/")
+    monkeypatch.delenv("APP_AUTH_AUDIENCE", raising=False)
+
+    settings = Settings(domain="mcp.acme.example")
+
+    assert settings.auth_enabled is True
+    assert (
+        settings.auth_issuer == "https://tenant.eu.auth0.com/"
+    )  # kept verbatim: ``iss`` must match
+    assert settings.auth_jwks_url == "https://tenant.eu.auth0.com/.well-known/jwks.json"
+    assert settings.auth_resource_url == "https://mcp.acme.example/mcp"
+
+
+def test_auth_audience_can_be_overridden_and_issuer_without_slash_works(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("APP_AUTH_ISSUER", "https://idp.example")
+    monkeypatch.setenv("APP_AUTH_AUDIENCE", "https://api.acme.example/mcp")
+
+    settings = Settings(domain="mcp.acme.example")
+
+    assert settings.auth_jwks_url == "https://idp.example/.well-known/jwks.json"
+    assert settings.auth_resource_url == "https://api.acme.example/mcp"

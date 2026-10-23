@@ -13,6 +13,7 @@ dependencies = [
     "py7zr>=1.1",
     "ijson>=3.6",
     "google-cloud-storage>=3.17",
+    "pyjwt[crypto]>=2.15",
 ]
 
 [build-system]

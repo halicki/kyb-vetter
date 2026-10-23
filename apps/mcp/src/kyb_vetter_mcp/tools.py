@@ -4,6 +4,7 @@ from datetime import date
 from typing import TYPE_CHECKING, Annotated, cast
 
 # The SDK resolves these annotations at runtime (Context injection, output schema): keep them eager.
+from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.mcpserver import Context  # noqa: TC002
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
@@ -17,7 +18,8 @@ from kyb_vetter_core.errors import (
     RegistryUnavailableError,
     RegistryUpdatingError,
 )
-from kyb_vetter_core.verification import (  # noqa: TC001
+from kyb_vetter_core.verification import (
+    DEFAULT_PRINCIPAL,
     BankAccountVerification,
     CompanyVerification,
     VerificationHistory,
@@ -55,6 +57,14 @@ def _parse_date(value: str | None) -> date | None:
         return date.fromisoformat(value)
     except ValueError as exc:
         raise ToolError(f"Invalid date {value!r}: use YYYY-MM-DD.") from exc
+
+
+def _principal() -> str:
+    """The verified token's subject; the constant local principal on stdio or with auth off."""
+    token = get_access_token()
+    if token is None or token.subject is None:
+        return DEFAULT_PRINCIPAL
+    return token.subject
 
 
 def _tool_error(exc: Exception) -> ToolError:
@@ -116,7 +126,7 @@ def register_tools(
         """
         service = cast("AppState", ctx.request_context.lifespan_context).service
         try:
-            return await service.verify_company(nip, date=_parse_date(date))
+            return await service.verify_company(nip, date=_parse_date(date), principal=_principal())
         except (InvalidIdentifierError, QuotaExhaustedError, RegistryError) as exc:
             raise _tool_error(exc) from exc
 
@@ -139,7 +149,9 @@ def register_tools(
         """
         service = cast("AppState", ctx.request_context.lifespan_context).service
         try:
-            return await service.check_bank_account(nip, account, date=_parse_date(date))
+            return await service.check_bank_account(
+                nip, account, date=_parse_date(date), principal=_principal()
+            )
         except (InvalidIdentifierError, QuotaExhaustedError, RegistryError) as exc:
             raise _tool_error(exc) from exc
 
@@ -151,11 +163,11 @@ def register_tools(
             int, Field(description="Maximum number of entries, newest first.", ge=1, le=100)
         ] = 20,
     ) -> VerificationHistory:
-        """List what this server has already verified for a NIP, newest first.
+        """List what the current user has already verified for a NIP on this server, newest first.
 
         Use to answer "when was this company last checked and what was the
         result" or to reuse an official request id instead of calling the
-        registry again. Each entry has the tool, timestamp, outcome, VAT status
+        registry again. Other users' calls are never shown. Each entry has the tool, timestamp, outcome, VAT status
         or account result, registry request ids and the SHA-256 of the result.
         ``persistent`` false means the history lives only in this process and
         may be incomplete. Does not call any registry and costs no quota. Entries
@@ -163,6 +175,6 @@ def register_tools(
         """
         service = cast("AppState", ctx.request_context.lifespan_context).service
         try:
-            return await service.verification_history(nip, limit=limit)
+            return await service.verification_history(nip, principal=_principal(), limit=limit)
         except InvalidIdentifierError as exc:
             raise _tool_error(exc) from exc

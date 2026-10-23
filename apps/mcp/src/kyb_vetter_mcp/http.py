@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from mcp.server.transport_security import TransportSecuritySettings
 from starlette.responses import JSONResponse
 
+from kyb_vetter_mcp.auth import resource_metadata
 from kyb_vetter_mcp.server import build_server
 
 if TYPE_CHECKING:
@@ -23,6 +24,8 @@ if TYPE_CHECKING:
 
 MCP_PATH = "/mcp"
 HEALTH_PATH = "/health"  # not /healthz: Google Front End intercepts that exact path on Cloud Run
+PRM_ROOT_PATH = "/.well-known/oauth-protected-resource"
+"""RFC 9728 fallback location; the SDK serves the path-scoped variant (``.../mcp``) itself."""
 
 
 def allowed_hosts(settings: Settings) -> list[str]:
@@ -52,6 +55,13 @@ def build_http_app(settings: Settings) -> Starlette:
                 },
             }
         )
+
+    if settings.auth_enabled:
+        document = resource_metadata(settings).model_dump(mode="json", exclude_none=True)
+
+        @server.custom_route(PRM_ROOT_PATH, methods=["GET"], include_in_schema=False)
+        async def prm_root(_request: Request) -> JSONResponse:
+            return JSONResponse(document, headers={"Cache-Control": "public, max-age=3600"})
 
     return server.streamable_http_app(
         streamable_http_path=MCP_PATH,

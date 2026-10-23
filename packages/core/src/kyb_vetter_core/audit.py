@@ -40,8 +40,8 @@ class AuditRecorder:
         self._store = store
         self._now = now
 
-    async def history(self, nip: str, *, limit: int) -> list[AuditEvent]:
-        return await self._store.history(nip, limit=limit)
+    async def history(self, nip: str, *, principal: str, limit: int) -> list[AuditEvent]:
+        return await self._store.history(nip, principal=principal, limit=limit)
 
     @staticmethod
     def digest(result: BaseModel) -> str:

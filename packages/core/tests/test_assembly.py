@@ -65,7 +65,7 @@ async def test_assembled_service_caches_guards_and_audits(
         service = build_verification_service(http, settings, stores, today=lambda: TODAY)
         first = await service.verify_company(NIP)
         second = await service.verify_company(NIP)
-        history = await service.verification_history(NIP)
+        history = await service.verification_history(NIP, principal="local")
 
     assert wl_route.call_count == 1
     assert krs_route.call_count == 1
@@ -97,7 +97,7 @@ async def test_assembled_service_refuses_when_guard_is_exhausted(
         service = build_verification_service(http, settings, stores, today=lambda: TODAY)
         with pytest.raises(QuotaExhaustedError):
             await service.verify_company(NIP)
-        history = await service.verification_history(NIP)
+        history = await service.verification_history(NIP, principal="local")
 
     assert not route.called
     assert history.entries[0].error_code == "QUOTA_GUARD"
