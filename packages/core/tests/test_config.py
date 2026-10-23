@@ -89,3 +89,14 @@ def test_database_url_is_optional(monkeypatch: pytest.MonkeyPatch) -> None:
     assert Settings().database_url is None
     monkeypatch.setenv("APP_DATABASE_URL", "postgresql+asyncpg://app:app@localhost:5432/app")
     assert Settings().database_url == "postgresql+asyncpg://app:app@localhost:5432/app"
+
+
+def test_flat_file_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in ("APP_FLATFILE_BUCKET", "APP_FLATFILE_DIR", "APP_MF_FLATFILE_BASE_URL"):
+        monkeypatch.delenv(name, raising=False)
+    settings = Settings()
+    assert settings.flatfile_bucket is None
+    assert settings.flatfile_dir is None
+    assert settings.mf_flatfile_base_url == "https://wykazpodatnikowvat.mf.gov.pl/plikplaski"
+    monkeypatch.setenv("APP_FLATFILE_BUCKET", "bucket-1")
+    assert Settings().flatfile_bucket == "bucket-1"

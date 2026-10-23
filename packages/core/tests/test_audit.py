@@ -31,6 +31,8 @@ async def test_record_success_stores_result_hash_and_receipts() -> None:
         account="61109010140000071219812874",
         assigned=True,
         vat_status=None,
+        via="api",
+        mask=None,
         warnings=(),
         sources=(
             _receipt("mf-whitelist", "r-1"),
@@ -89,10 +91,24 @@ async def test_record_error_classifies_exceptions() -> None:
 def test_digest_is_stable_for_equal_results() -> None:
     recorder = AuditRecorder(MemoryAuditStore(), now=lambda: NOW)
     a = BankAccountVerification(
-        nip=NIP, account="a", assigned=False, vat_status=None, warnings=(), sources=()
+        nip=NIP,
+        account="a",
+        assigned=False,
+        vat_status=None,
+        via="api",
+        mask=None,
+        warnings=(),
+        sources=(),
     )
     b = BankAccountVerification(
-        nip=NIP, account="a", assigned=False, vat_status=None, warnings=(), sources=()
+        nip=NIP,
+        account="a",
+        assigned=False,
+        vat_status=None,
+        via="api",
+        mask=None,
+        warnings=(),
+        sources=(),
     )
     assert recorder.digest(a) == recorder.digest(b)
     assert len(recorder.digest(a)) == 64

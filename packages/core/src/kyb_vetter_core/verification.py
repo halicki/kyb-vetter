@@ -10,15 +10,18 @@ that produced it.
 import logging
 import re
 from datetime import date, datetime
-from typing import TYPE_CHECKING, Any, Literal, TypeIs
+from hashlib import sha256
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeIs
 
 from pydantic import BaseModel, ConfigDict
 
 from kyb_vetter_core.config import RegistryEnvironment, registry_environment
 from kyb_vetter_core.errors import NotFoundError, RegistryError
-from kyb_vetter_core.identifiers import normalize_nip, validate_nip
+from kyb_vetter_core.flatfile.checker import FlatFileChecker
+from kyb_vetter_core.identifiers import normalize_nip, validate_bank_account, validate_nip
 from kyb_vetter_core.models import (
     SOURCE_KRS,
+    WARSAW,
     KrsExtract,
     RegistryReceipt,
     VatStatus,
@@ -29,6 +32,7 @@ from kyb_vetter_core.sanitize import clean_text
 if TYPE_CHECKING:
     from kyb_vetter_core.audit import AuditRecorder
     from kyb_vetter_core.clients.protocols import KrsProtocol, WhiteListProtocol
+    from kyb_vetter_core.flatfile.index import FlatFileIndex
     from kyb_vetter_core.storage.ports import AuditEvent
 
 logger = logging.getLogger(__name__)
@@ -46,6 +50,10 @@ WARN_KRS_NOT_FOUND = "KRS_NOT_FOUND"
 WARN_KRS_UNAVAILABLE = "KRS_UNAVAILABLE"
 WARN_NAME_MISMATCH = "NAME_MISMATCH"
 WARN_NO_BANK_ACCOUNTS = "NO_BANK_ACCOUNTS"
+WARN_FLAT_FILE_MISS = "FLAT_FILE_MISS"
+
+SOURCE_FLAT_FILE = "mf-flat-file"
+FLAT_FILE_HOST = "wykazpodatnikowvat.mf.gov.pl"
 
 SOURCE_CEIDG = "ceidg"
 DEFAULT_PRINCIPAL = "local"
@@ -62,6 +70,12 @@ SKIPPED_KRS_NO_NUMBER = "no KRS number on the white-list entry (not a registered
 
 class _Model(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
+
+
+class FlatFileSource(Protocol):
+    """Whatever serves the newest flat-file index (see :mod:`flatfile.provider`)."""
+
+    async def current(self) -> FlatFileIndex | None: ...
 
 
 class VerificationWarning(_Model):
@@ -212,6 +226,10 @@ class BankAccountVerification(_Model):
     account: str
     assigned: bool
     vat_status: VatStatus | None
+    via: Literal["flat_file", "api"]
+    """``flat_file``: confirmed offline from the ministry's daily file; ``api``: live white-list call."""
+    mask: str | None
+    """Bank mask that matched a virtual account, when the flat file answered through one."""
     warnings: tuple[VerificationWarning, ...]
     sources: tuple[SourceReceipt, ...]
 
@@ -297,11 +315,13 @@ class VerificationService:
         *,
         audit: AuditRecorder,
         persistent: bool,
+        flatfile: FlatFileSource | None = None,
     ) -> None:
         self._whitelist = whitelist
         self._krs = krs
         self._audit = audit
         self._persistent = persistent
+        self._flatfile = flatfile
 
     async def verify_company(
         self, nip: str, *, date: date | None = None, principal: str = DEFAULT_PRINCIPAL
@@ -434,9 +454,20 @@ class VerificationService:
     async def _check_bank_account(
         self, nip: str, account: str, *, date: date | None
     ) -> BankAccountVerification:
+        warnings: list[VerificationWarning] = []
+        if date is None:
+            offline = await self._check_flat_file(nip, account)
+            if offline is not None:
+                return offline
+            if self._flatfile is not None and await self._flatfile.current() is not None:
+                warnings.append(
+                    VerificationWarning(
+                        code=WARN_FLAT_FILE_MISS,
+                        message="Pair not found in today's flat file; confirmed with the live API instead.",
+                    )
+                )
         check = await self._whitelist.check(nip, account, date=date)
         sources = [SourceReceipt.from_receipt(check.receipt)]
-        warnings: list[VerificationWarning] = []
         vat_status: VatStatus | None
         try:
             status = await self._whitelist.status(check.nip, date=date)
@@ -458,9 +489,48 @@ class VerificationService:
             account=check.account,
             assigned=check.assigned,
             vat_status=vat_status,
+            via="api",
+            mask=None,
             warnings=tuple(warnings),
             sources=tuple(sources),
         )
+
+    async def _check_flat_file(self, nip: str, account: str) -> BankAccountVerification | None:
+        """Positive answers come from the daily file (no quota); misses are not conclusive."""
+        if self._flatfile is None:
+            return None
+        index = await self._flatfile.current()
+        if index is None:
+            return None
+        clean_nip = validate_nip(nip)
+        clean_account = validate_bank_account(account)
+        match = FlatFileChecker(index).check(clean_nip, clean_account)
+        if match is None:
+            return None
+        vat_status = VatStatus.ACTIVE if match.status == "active" else VatStatus.EXEMPT
+        receipt = RegistryReceipt(
+            source=SOURCE_FLAT_FILE,
+            host=self._flatfile_host,
+            request_id=None,
+            request_datetime=datetime.now(tz=WARSAW),
+            queried_date=datetime.strptime(index.date, "%Y%m%d").date(),
+            response_sha256=sha256(f"{index.source_sha512}{match.digest}".encode()).hexdigest(),
+        )
+        warnings = [] if vat_status is VatStatus.ACTIVE else [_not_active_warning(vat_status)]
+        return BankAccountVerification(
+            nip=clean_nip,
+            account=clean_account,
+            assigned=True,
+            vat_status=vat_status,
+            via="flat_file",
+            mask=match.mask,
+            warnings=tuple(warnings),
+            sources=(SourceReceipt.from_receipt(receipt),),
+        )
+
+    @property
+    def _flatfile_host(self) -> str:
+        return FLAT_FILE_HOST
 
     async def _fetch_krs(
         self, krs: str

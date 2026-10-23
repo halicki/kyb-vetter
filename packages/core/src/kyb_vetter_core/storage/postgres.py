@@ -15,7 +15,7 @@ from sqlalchemy.dialects.postgresql import JSONB, insert
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from kyb_vetter_core.storage.ports import AuditEvent, CacheEntry, Stores
+from kyb_vetter_core.storage.ports import AuditEvent, BlobStore, CacheEntry, Stores
 
 
 class Base(DeclarativeBase):
@@ -201,7 +201,7 @@ def make_engine(url: str) -> AsyncEngine:
 
 
 @asynccontextmanager
-async def open_postgres_stores(url: str) -> AsyncGenerator[Stores]:
+async def open_postgres_stores(url: str, *, blobs: BlobStore) -> AsyncGenerator[Stores]:
 
     engine = make_engine(url)
     sessions: SessionFactory = async_sessionmaker(engine, expire_on_commit=False)
@@ -210,6 +210,7 @@ async def open_postgres_stores(url: str) -> AsyncGenerator[Stores]:
             quota=PostgresQuotaStore(sessions),
             audit=PostgresAuditStore(sessions),
             cache=PostgresCacheStore(sessions),
+            blobs=blobs,
             persistent=True,
         )
     finally:

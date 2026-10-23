@@ -43,7 +43,10 @@ async def test_healthz_reports_name_and_storage_mode(settings: Settings) -> None
         response = await http.get("/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "name": "unit-test-connector", "persistent": False}
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["name"] == "unit-test-connector"
+    assert body["persistent"] is False
 
 
 async def test_mcp_endpoint_lists_tools_over_streamable_http(settings: Settings) -> None:
@@ -94,3 +97,9 @@ async def test_host_check_can_be_disabled_behind_a_platform(settings: Settings) 
     async with hosted(relaxed, base_url="http://anything.a.run.app") as http:
         response = await http.get("/health", headers={"Host": "anything.a.run.app"})
     assert response.status_code == 200
+
+
+async def test_health_reports_flat_file_state(settings: Settings) -> None:
+    async with hosted(settings) as http:
+        body = (await http.get("/health")).json()
+    assert body["flat_file"] == {"loaded": False, "date": None}

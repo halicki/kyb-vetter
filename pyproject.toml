@@ -132,6 +132,7 @@ branch = true
 omit = [
     "*/__main__.py",            # process entry points, exercised by hand (MCP Inspector)
     "*/clients/protocols.py",  # typing-only Protocols, imported under TYPE_CHECKING
+    "*/storage/gcs.py",        # needs real GCS credentials; covered by the live test and the deployed worker
 ]
 
 [tool.coverage.report]
@@ -185,6 +186,8 @@ depends_on = ["kyb_vetter_core.errors"]
 [[tool.tach.modules]]
 path = "kyb_vetter_core.storage"
 depends_on = [
+    "kyb_vetter_core.storage.blobs",
+    "kyb_vetter_core.storage.gcs",
     "kyb_vetter_core.storage.memory",
     "kyb_vetter_core.storage.ports",
     "kyb_vetter_core.storage.postgres",
@@ -226,9 +229,46 @@ depends_on = [
     "kyb_vetter_core.cache",
     "kyb_vetter_core.clients.krs",
     "kyb_vetter_core.clients.whitelist",
+    "kyb_vetter_core.flatfile.provider",
     "kyb_vetter_core.quota",
     "kyb_vetter_core.verification",
 ]
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.flatfile.hashing"
+depends_on = []
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.flatfile.testing"
+depends_on = ["kyb_vetter_core.flatfile.hashing"]
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.flatfile.index"
+depends_on = []
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.flatfile.build"
+depends_on = ["kyb_vetter_core.errors", "kyb_vetter_core.flatfile.index"]
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.flatfile.download"
+depends_on = ["kyb_vetter_core.errors"]
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.flatfile.checker"
+depends_on = ["kyb_vetter_core.flatfile.hashing"]
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.flatfile.provider"
+depends_on = ["kyb_vetter_core.flatfile.index"]
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.storage.blobs"
+depends_on = []
+
+[[tool.tach.modules]]
+path = "kyb_vetter_core.storage.gcs"
+depends_on = []
 
 [[tool.tach.modules]]
 path = "kyb_vetter_core.sanitize"
@@ -238,6 +278,7 @@ depends_on = []
 path = "kyb_vetter_core.verification"
 # clients are injected and imported only under TYPE_CHECKING (ignore_type_checking_imports)
 depends_on = [
+    "kyb_vetter_core.flatfile.checker",
     "kyb_vetter_core.config",
     "kyb_vetter_core.errors",
     "kyb_vetter_core.identifiers",

@@ -70,6 +70,14 @@ class Settings(BaseSettings):
     """Additional ``Host`` values accepted by the hosted transport (JSON list in APP_EXTRA_ALLOWED_HOSTS)."""
 
     host_check: bool = True
+    flatfile_bucket: str | None = None
+    """GCS bucket holding the daily flat-file index (APP_FLATFILE_BUCKET); worker writes, service reads."""
+
+    flatfile_dir: str | None = None
+    """Local directory used instead of a bucket (APP_FLATFILE_DIR); in-memory when both are unset."""
+
+    mf_flatfile_base_url: str = "https://wykazpodatnikowvat.mf.gov.pl/plikplaski"
+    """Where the ministry publishes ``YYYYMMDD.7z`` (APP_MF_FLATFILE_BASE_URL)."""
     """Reject requests whose ``Host`` is not allow-listed (DNS-rebinding protection). Off behind
     a TLS-terminating platform such as Cloud Run, where the hostname is fixed by the platform."""
 

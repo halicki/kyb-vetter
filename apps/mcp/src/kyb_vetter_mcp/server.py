@@ -14,6 +14,7 @@ import httpx
 from mcp.server import MCPServer
 
 from kyb_vetter_core.assembly import build_verification_service
+from kyb_vetter_core.flatfile.provider import FlatFileProvider
 from kyb_vetter_core.storage import open_stores
 
 # dataclass fields are evaluated at class creation: keep this import eager
@@ -21,7 +22,7 @@ from kyb_vetter_core.verification import VerificationService  # noqa: TC001
 from kyb_vetter_mcp.tools import register_tools
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
+    from collections.abc import AsyncGenerator, Callable
 
     from kyb_vetter_core.config import Settings
 
@@ -43,22 +44,34 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class AppState:
     service: VerificationService
+    flatfile: FlatFileProvider
 
 
-def build_server(settings: Settings) -> MCPServer[AppState]:
-    """Create a configured server; ``settings`` decides name, registry hosts and timeouts."""
+def build_server(
+    settings: Settings, *, on_state: Callable[[AppState], None] | None = None
+) -> MCPServer[AppState]:
+    """Create a configured server; ``settings`` decides name, registry hosts and timeouts.
+
+    ``on_state`` is called once the lifespan has built the runtime state (used by /health).
+    """
 
     @asynccontextmanager
     async def lifespan(_server: MCPServer[AppState]) -> AsyncGenerator[AppState]:
         async with open_stores(settings) as stores, httpx.AsyncClient() as http:
-            service = build_verification_service(http, settings, stores)
+            flatfile = FlatFileProvider(stores.blobs)
+            service = build_verification_service(http, settings, stores, flatfile=flatfile)
+            index = await flatfile.current()
             logger.info(
-                "registry clients ready (mf=%s, krs=%s, persistent=%s)",
+                "registry clients ready (mf=%s, krs=%s, persistent=%s, flat_file=%s)",
                 settings.mf_base_url,
                 settings.krs_base_url,
                 stores.persistent,
+                index.date if index is not None else None,
             )
-            yield AppState(service=service)
+            state = AppState(service=service, flatfile=flatfile)
+            if on_state is not None:
+                on_state(state)
+            yield state
 
     server: MCPServer[AppState] = MCPServer(
         name=settings.project_name,

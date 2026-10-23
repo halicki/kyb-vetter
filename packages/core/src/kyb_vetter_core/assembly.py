@@ -14,6 +14,7 @@ from kyb_vetter_core.clients.krs import KrsClient
 from kyb_vetter_core.clients.whitelist import WhiteListClient, today_in_warsaw
 from kyb_vetter_core.quota import GuardedWhiteListClient, QuotaGuard
 from kyb_vetter_core.verification import VerificationService
+lazy from kyb_vetter_core.flatfile.provider import FlatFileProvider
 
 if TYPE_CHECKING:
     import httpx
@@ -28,6 +29,7 @@ def build_verification_service(
     stores: Stores,
     *,
     today: Callable[[], date] = today_in_warsaw,
+    flatfile: FlatFileProvider | None = None,
 ) -> VerificationService:
     guard = QuotaGuard(stores.quota, today=today)
     whitelist = CachedWhiteListClient(
@@ -35,5 +37,9 @@ def build_verification_service(
     )
     krs = CachedKrsClient(KrsClient(http, settings), stores.cache, today=today)
     return VerificationService(
-        whitelist, krs, audit=AuditRecorder(stores.audit), persistent=stores.persistent
+        whitelist,
+        krs,
+        audit=AuditRecorder(stores.audit),
+        persistent=stores.persistent,
+        flatfile=flatfile if flatfile is not None else FlatFileProvider(stores.blobs),
     )

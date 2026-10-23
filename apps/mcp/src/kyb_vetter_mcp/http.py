@@ -13,6 +13,9 @@ from starlette.responses import JSONResponse
 from kyb_vetter_mcp.server import build_server
 
 if TYPE_CHECKING:
+    from kyb_vetter_mcp.server import AppState
+
+if TYPE_CHECKING:
     from starlette.applications import Starlette
     from starlette.requests import Request
 
@@ -32,15 +35,21 @@ def allowed_hosts(settings: Settings) -> list[str]:
 
 
 def build_http_app(settings: Settings) -> Starlette:
-    server = build_server(settings)
+    states: list[AppState] = []
+    server = build_server(settings, on_state=states.append)
 
     @server.custom_route(HEALTH_PATH, methods=["GET"], include_in_schema=False)
     async def healthz(_request: Request) -> JSONResponse:
+        index = await states[0].flatfile.current() if states else None
         return JSONResponse(
             {
                 "status": "ok",
                 "name": settings.project_name,
                 "persistent": settings.database_url is not None,
+                "flat_file": {
+                    "loaded": index is not None,
+                    "date": None if index is None else index.date,
+                },
             }
         )
 

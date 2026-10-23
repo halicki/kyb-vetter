@@ -71,6 +71,16 @@ class AuditStore(Protocol):
         ...
 
 
+class BlobStore(Protocol):
+    """Named binary objects (flat-file indexes). Keys use ``/`` separators."""
+
+    async def get(self, name: str) -> bytes | None: ...
+
+    async def put(self, name: str, data: bytes) -> None: ...
+
+    async def exists(self, name: str) -> bool: ...
+
+
 class CacheStore(Protocol):
     async def get(
         self, source: str, cache_key: str, queried_date: date, *, now: datetime
@@ -88,5 +98,6 @@ class Stores:
     quota: QuotaStore
     audit: AuditStore
     cache: CacheStore
+    blobs: BlobStore
     persistent: bool
     """False when state lives in this process only (quota is then NOT shared across instances)."""

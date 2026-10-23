@@ -13,10 +13,15 @@ from kyb_vetter_core.clients.krs import KrsClient
 from kyb_vetter_core.clients.whitelist import WhiteListClient
 from kyb_vetter_core.config import Settings
 from kyb_vetter_core.errors import DailyLimitExceededError, InvalidNipError
+from kyb_vetter_core.flatfile.hashing import masked_account, pair_digest
+from kyb_vetter_core.flatfile.index import FlatFileIndex
+from kyb_vetter_core.flatfile.provider import FlatFileProvider
 from kyb_vetter_core.models import VatStatus
+from kyb_vetter_core.storage.blobs import MemoryBlobStore
 from kyb_vetter_core.storage.memory import MemoryAuditStore
 from kyb_vetter_core.verification import (
     MAX_ACCOUNT_NUMBERS,
+    WARN_FLAT_FILE_MISS,
     WARN_KRS_NOT_FOUND,
     WARN_KRS_UNAVAILABLE,
     WARN_NAME_MISMATCH,
@@ -536,3 +541,190 @@ async def test_verification_history_limit_and_invalid_nip(service: VerificationS
     assert history.entries == ()
     with pytest.raises(InvalidNipError):
         await service.verification_history("1234567890")
+
+
+# --- flat file --------------------------------------------------------------
+
+FF_DATE = "20261022"
+FF_MASK = "XX10900000YYYYYYYYYYYYXXXX"
+
+
+class _StaticProvider:
+    def __init__(self, index: FlatFileIndex | None) -> None:
+        self._index = index
+
+    async def current(self) -> FlatFileIndex | None:
+        return self._index
+
+
+def flat_index(*pairs: tuple[str, str], exempt: tuple[tuple[str, str], ...] = ()) -> FlatFileIndex:
+    return FlatFileIndex.build(
+        date=FF_DATE,
+        transformations=3,
+        source_sha512="ef" * 64,
+        active=[pair_digest(FF_DATE, n, a, transformations=3) for n, a in pairs],
+        exempt=[pair_digest(FF_DATE, n, a, transformations=3) for n, a in exempt],
+        masks=[FF_MASK],
+    )
+
+
+@pytest.fixture
+async def ff_service(
+    audit_store: MemoryAuditStore, monkeypatch: pytest.MonkeyPatch
+) -> AsyncIterator[VerificationService]:
+    monkeypatch.setattr(whitelist_module, "today_in_warsaw", lambda: TODAY)
+    settings = Settings(mf_base_url=MF, krs_base_url=KRS, project_name="unit-test")
+    index = flat_index(
+        (NIP, NRB),
+        ("1854510877", masked_account(FF_MASK, "03109000009999998765000000")),
+        exempt=(("7740001454", NRB),),
+    )
+    async with httpx.AsyncClient() as http:
+        yield VerificationService(
+            WhiteListClient(http, settings),
+            KrsClient(http, settings),
+            audit=AuditRecorder(audit_store),
+            persistent=False,
+            flatfile=_StaticProvider(index),
+        )
+
+
+async def test_flat_file_hit_answers_without_any_api_call(
+    ff_service: VerificationService, mock_api: respx.MockRouter
+) -> None:
+    api = mock_api.get(url__regex=rf"{MF}/.*").respond(200, json={})
+
+    result = await ff_service.check_bank_account("PL " + NIP, "PL" + NRB)
+
+    assert not api.called
+    assert result.assigned is True
+    assert result.via == "flat_file"
+    assert result.vat_status is VatStatus.ACTIVE
+    assert result.mask is None
+    assert result.warnings == ()
+    assert [s.source for s in result.sources] == ["mf-flat-file"]
+    assert result.sources[0].queried_date == date(2026, 10, 22)
+    assert result.sources[0].request_id is None
+    assert len(result.sources[0].response_sha256) == 64
+
+
+async def test_flat_file_exempt_hit_sets_status_and_warning(
+    ff_service: VerificationService, mock_api: respx.MockRouter
+) -> None:
+    result = await ff_service.check_bank_account("7740001454", NRB)
+
+    assert result.assigned is True
+    assert result.vat_status is VatStatus.EXEMPT
+    assert [w.code for w in result.warnings] == [WARN_VAT_NOT_ACTIVE]
+
+
+async def test_flat_file_virtual_account_via_mask(
+    ff_service: VerificationService, mock_api: respx.MockRouter
+) -> None:
+    result = await ff_service.check_bank_account("1854510877", "03109000009999998765000000")
+
+    assert result.assigned is True
+    assert result.via == "flat_file"
+    assert result.mask == FF_MASK
+
+
+async def test_flat_file_miss_falls_back_to_api_with_a_note(
+    ff_service: VerificationService, mock_api: respx.MockRouter, fixture_json: Callable[[str], Any]
+) -> None:
+    check = mock_api.get(
+        f"{MF}/api/check/nip/{NIP}/bank-account/82114020040000340276776163"
+    ).respond(200, json=fixture_json("whitelist/check_nie"))
+    mock_api.get(f"{MF}/api2/status/nip/{NIP}").respond(
+        200, json=fixture_json("whitelist/status_czynny")
+    )
+
+    result = await ff_service.check_bank_account(NIP, "82114020040000340276776163")
+
+    assert check.called
+    assert result.assigned is False
+    assert result.via == "api"
+    assert [w.code for w in result.warnings] == [WARN_FLAT_FILE_MISS]
+
+
+async def test_explicit_date_always_uses_the_api(
+    ff_service: VerificationService, mock_api: respx.MockRouter, fixture_json: Callable[[str], Any]
+) -> None:
+    check = mock_api.get(f"{MF}/api/check/nip/{NIP}/bank-account/{NRB}").respond(
+        200, json=fixture_json("whitelist/check_tak")
+    )
+    mock_api.get(f"{MF}/api2/status/nip/{NIP}").respond(
+        200, json=fixture_json("whitelist/status_czynny")
+    )
+
+    result = await ff_service.check_bank_account(NIP, NRB, date=date(2026, 1, 15))
+
+    assert check.called
+    assert result.via == "api"
+
+
+async def test_without_an_index_the_api_path_is_unchanged(
+    service: VerificationService, mock_api: respx.MockRouter, fixture_json: Callable[[str], Any]
+) -> None:
+    mock_api.get(f"{MF}/api/check/nip/{NIP}/bank-account/{NRB}").respond(
+        200, json=fixture_json("whitelist/check_tak")
+    )
+    mock_api.get(f"{MF}/api2/status/nip/{NIP}").respond(
+        200, json=fixture_json("whitelist/status_czynny")
+    )
+
+    result = await service.check_bank_account(NIP, NRB)
+
+    assert result.via == "api"
+    assert result.warnings == ()
+
+
+async def test_provider_from_blob_store_is_used(
+    audit_store: MemoryAuditStore, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import json as _json
+
+    from kyb_vetter_core.flatfile.provider import LATEST_KEY, index_key, latest_manifest
+
+    monkeypatch.setattr(whitelist_module, "today_in_warsaw", lambda: TODAY)
+    blobs = MemoryBlobStore()
+    index = flat_index((NIP, NRB))
+    await blobs.put(index_key(index.date), index.to_bytes())
+    await blobs.put(LATEST_KEY, _json.dumps(latest_manifest(index)).encode())
+    settings = Settings(mf_base_url=MF, krs_base_url=KRS, project_name="unit-test")
+    async with httpx.AsyncClient() as http:
+        service = VerificationService(
+            WhiteListClient(http, settings),
+            KrsClient(http, settings),
+            audit=AuditRecorder(audit_store),
+            persistent=False,
+            flatfile=FlatFileProvider(blobs),
+        )
+        result = await service.check_bank_account(NIP, NRB)
+    assert result.via == "flat_file"
+
+
+async def test_provider_without_an_index_falls_back_silently(
+    audit_store: MemoryAuditStore,
+    mock_api: respx.MockRouter,
+    fixture_json: Callable[[str], Any],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(whitelist_module, "today_in_warsaw", lambda: TODAY)
+    settings = Settings(mf_base_url=MF, krs_base_url=KRS, project_name="unit-test")
+    mock_api.get(f"{MF}/api/check/nip/{NIP}/bank-account/{NRB}").respond(
+        200, json=fixture_json("whitelist/check_tak")
+    )
+    mock_api.get(f"{MF}/api2/status/nip/{NIP}").respond(
+        200, json=fixture_json("whitelist/status_czynny")
+    )
+    async with httpx.AsyncClient() as http:
+        service = VerificationService(
+            WhiteListClient(http, settings),
+            KrsClient(http, settings),
+            audit=AuditRecorder(audit_store),
+            persistent=False,
+            flatfile=_StaticProvider(None),
+        )
+        result = await service.check_bank_account(NIP, NRB)
+    assert result.via == "api"
+    assert result.warnings == ()
