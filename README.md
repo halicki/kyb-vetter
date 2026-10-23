@@ -47,6 +47,8 @@ Environment variables, prefix `APP_` (see `kyb_vetter_core.config`):
 | ------------------ | ------------ | ----------------------------------------------- |
 | `APP_PROJECT_NAME` | `kyb-vetter` | product name used in strings and resource names |
 | `APP_DOMAIN`       | `localhost`  | public hostname of the hosted service           |
+| `APP_AUTH_ISSUER`  | unset        | OAuth issuer (Auth0 tenant URL, trailing slash); unset = no auth |
+| `APP_AUTH_AUDIENCE`| `https://<domain>/mcp` | resource identifier tokens must carry in `aud` |
 | `APP_MF_BASE_URL`  | `https://wykazpodatnikowvat.mf.gov.pl` | VAT white-list API (test: `wykazpodatnikowvat-test.mf.gov.pl`) |
 | `APP_KRS_BASE_URL` | `https://api-krs.ms.gov.pl` | KRS open API |
 | `APP_HTTP_TIMEOUT_S` | `10` | per-request timeout for registry calls |

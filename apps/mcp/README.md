@@ -116,6 +116,25 @@ Stateless, JSON responses, DNS-rebinding protection on: accepted hosts are
 The container image (`Dockerfile` at the repository root) runs this mode; Cloud Run
 deployment is described in `infra/terraform/README.md`.
 
+## Hosted with OAuth (ADR-0017)
+
+Set `APP_AUTH_ISSUER` (and optionally `APP_AUTH_AUDIENCE`, default `https://$APP_DOMAIN/mcp`)
+and the server becomes an OAuth 2.1 resource server: `/mcp` requires a bearer access token
+issued by that issuer for that audience (RS256, verified against the issuer's JWKS), `/health`
+stays public, and RFC 9728 metadata is served at `/.well-known/oauth-protected-resource/mcp`
+(and at the root path for clients that probe it). The token's `sub` is the audit principal and
+scopes `verification_history` to the caller.
+
+```sh
+APP_DOMAIN=mcp.example.dev APP_AUTH_ISSUER=https://tenant.eu.auth0.com/ uv run python -m kyb_vetter_mcp http
+curl -i -X POST http://localhost:8080/mcp -H 'Content-Type: application/json' -d '{}'   # 401
+npx -y @modelcontextprotocol/inspector --transport http https://mcp.example.dev/mcp         # OAuth in the browser
+```
+
+For scripts, pass `Authorization: Bearer <token>` on the `httpx2.AsyncClient` given to
+`streamable_http_client` (see `apps/mcp/tests/test_auth_http.py`). Connector setup for Claude,
+Gemini CLI and ChatGPT is in `docs/connectors.md`; the Auth0 tenant checklist in `docs/auth0.md`.
+
 ## Tests
 
 ```sh
