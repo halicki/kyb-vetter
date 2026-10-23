@@ -54,6 +54,18 @@ Stable codes returned in `warnings[].code`; messages are free text for humans.
 
 Days follow Europe/Warsaw. `verification_history` and cache hits cost nothing.
 
+## Auth and identity (from M6, 2026-10-23)
+
+- Identity provider: Auth0, tenant per environment in the EU region (ADR-0017). The MCP server
+  is an OAuth resource server; the principal is the token's `sub` (e.g. `google-oauth2|123`).
+- Hostname: `mcp.<zone>` (dev: `mcp.kybvetter.dev`); the REST API (M7) goes under `api.<zone>`.
+  The zone is a working domain, not the brand (SPEC backlog).
+- `verification_history` is per principal: users never see each other's calls.
+- Per-user daily budgets (ADR-0019): 200 `verify_company`, 500 `check_bank_account`, cache hits
+  included, history free. Error code `USER_LIMIT` in the audit log.
+- Connectors verified: Claude custom connector (CIMD). Gemini CLI, ChatGPT and Gemini Enterprise
+  are documented but untested (`docs/connectors.md`).
+
 ## Flat file facts (verified 2026-10-23)
 
 - URL `https://wykazpodatnikowvat.mf.gov.pl/plikplaski/YYYYMMDD.7z`, ~250 MB, 30 days kept, published ~22:10 UTC the evening before the file date (spec: target 00:01).

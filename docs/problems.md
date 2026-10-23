@@ -56,6 +56,9 @@
   needs a pre-registered confidential client.
 - Auth0 tenant configuration is manual (`docs/auth0.md`); the `auth0/auth0` Terraform provider is
   the candidate if the checklist drifts.
+- API keys (ADR-0019) have storage and verification but no way to be issued until the REST API
+  (M7) adds a CLI/endpoint; `quota_counters` rows for `user:` buckets are never purged (retention
+  with the audit log, M8).
 
 ## Open since M5 (2026-10-23)
 
