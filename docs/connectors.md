@@ -73,4 +73,5 @@ request, which makes it the first thing to try when a connector fails.
 | `invalid_token` after a successful login | `aud` mismatch: Auth0 default audience / API identifier differs from `APP_AUTH_AUDIENCE` |
 | Token is not a JWT (five dots, JWE) | Auth0 default audience missing |
 | Claude: "Authorization failed" after consent | Auth0 or the server unreachable from Claude's egress range (WAF, proxy) |
+| Claude: "started connecting but didn't finish", no login page; Auth0 log / replayed `/authorize` says `Client "tpc_..." is not authorized to access resource server` | The API does not allow third-party (CIMD/DCR) clients: enable third-party access and default permissions on the API in Auth0 (`docs/auth0.md` step 2) |
 | 421 from the server | Host header not allow-listed: the hostname is neither `APP_DOMAIN` nor in `APP_EXTRA_ALLOWED_HOSTS` |

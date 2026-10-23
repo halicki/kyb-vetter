@@ -20,6 +20,10 @@ Applications → APIs → Create API:
 - Settings → **Allow Offline Access** on (refresh tokens for public clients).
 - Settings → Access Settings → **Allow Skipping User Consent** off (third-party clients must consent).
 - Permissions: none needed in M6 (the server requires no scopes).
+- **Third-party applications**: allow third-party (dynamically registered CIMD/DCR) clients to
+  access this API and set the default permissions (an empty list is fine, the switch is what
+  matters). Without it every `/authorize` fails with `Client "tpc_..." is not authorized to
+  access resource server "<identifier>"` and Claude reports "didn't finish" before any login page.
 
 ## 3. Tenant settings → General
 
