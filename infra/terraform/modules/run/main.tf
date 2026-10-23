@@ -63,11 +63,14 @@ resource "google_cloud_run_v2_service" "mcp" {
           }
         }
       }
+      # /health reads the flat-file manifest from GCS on a cold start, so give it a real timeout and
+      # a full minute: a cold instance with a 60 MB index behind it must not be killed by the probe.
       startup_probe {
         http_get { path = "/health" }
         initial_delay_seconds = 2
         period_seconds        = 5
-        failure_threshold     = 6
+        timeout_seconds       = 3
+        failure_threshold     = 12
       }
     }
   }
