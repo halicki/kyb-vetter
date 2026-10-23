@@ -4,12 +4,15 @@ from datetime import date, timedelta
 from typing import Any
 
 import respx
+from mcp import Client
 from mcp.types import TextContent
 
+from kyb_vetter_core.config import Settings
 from kyb_vetter_mcp.server import (
     TOOL_CHECK_BANK_ACCOUNT,
     TOOL_VERIFICATION_HISTORY,
     TOOL_VERIFY_COMPANY,
+    build_server,
 )
 
 from .conftest import KRS, MF, NIP, NRB, ORLEN_KRS, ClientFactory
@@ -244,3 +247,25 @@ async def test_quota_guard_refusal_is_explained_to_the_model(
     assert isinstance(result.content[0], TextContent)
     assert "guard" in result.content[0].text.lower()
     assert "midnight" in result.content[0].text.lower()
+
+
+async def test_user_limit_refusal_is_explained_to_the_model(
+    settings: Settings, mock_api: respx.MockRouter, wl_found: dict[str, Any]
+) -> None:
+    wl_found["result"]["subject"]["krs"] = None
+    route = mock_api.get(f"{MF}/api/search/nip/{NIP}").respond(200, json=wl_found)
+    limited = settings.model_copy(update={"user_daily_limit_verify": 1})
+    async with Client(build_server(limited), raise_exceptions=True) as client:
+        first = await client.call_tool(TOOL_VERIFY_COMPANY, {"nip": NIP})
+        second = await client.call_tool(TOOL_VERIFY_COMPANY, {"nip": NIP})
+
+    assert first.is_error is False
+    assert route.call_count == 1
+    assert second.is_error is True
+    assert isinstance(second.content[0], TextContent)
+    text = second.content[0].text.lower()
+    assert "your daily limit" in text
+    assert "1 calls" in text
+    assert "verify_company" in text
+    assert "midnight" in text
+    assert "all users" not in text

@@ -17,6 +17,7 @@ from kyb_vetter_core.errors import (
     RegistryError,
     RegistryUnavailableError,
     RegistryUpdatingError,
+    UserLimitExceededError,
 )
 from kyb_vetter_core.verification import (
     DEFAULT_PRINCIPAL,
@@ -79,6 +80,11 @@ def _tool_error(exc: Exception) -> ToolError:
                 f"calls ({exc.bucket}) used today across all users. Resets at midnight Europe/Warsaw "
                 f"({exc.resets_on.isoformat()}). Do not retry today."
             )
+        case UserLimitExceededError():
+            return ToolError(
+                f"Your daily limit of {exc.limit} calls to {exc.tool} is used up; it resets at "
+                f"midnight Europe/Warsaw ({exc.resets_on.isoformat()}). Do not retry today."
+            )
         case DailyLimitExceededError():
             return ToolError(
                 "The VAT white-list daily quota for this server is exhausted; the registry blocks further "
@@ -127,7 +133,12 @@ def register_tools(
         service = cast("AppState", ctx.request_context.lifespan_context).service
         try:
             return await service.verify_company(nip, date=_parse_date(date), principal=_principal())
-        except (InvalidIdentifierError, QuotaExhaustedError, RegistryError) as exc:
+        except (
+            InvalidIdentifierError,
+            QuotaExhaustedError,
+            UserLimitExceededError,
+            RegistryError,
+        ) as exc:
             raise _tool_error(exc) from exc
 
     @server.tool(name=check_name, title="Check a bank account against a NIP", annotations=READ_ONLY)
@@ -152,7 +163,12 @@ def register_tools(
             return await service.check_bank_account(
                 nip, account, date=_parse_date(date), principal=_principal()
             )
-        except (InvalidIdentifierError, QuotaExhaustedError, RegistryError) as exc:
+        except (
+            InvalidIdentifierError,
+            QuotaExhaustedError,
+            UserLimitExceededError,
+            RegistryError,
+        ) as exc:
             raise _tool_error(exc) from exc
 
     @server.tool(name=history_name, title="Past verifications of a NIP", annotations=READ_ONLY)
