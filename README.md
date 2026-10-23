@@ -52,9 +52,11 @@ Environment variables, prefix `APP_` (see `kyb_vetter_core.config`):
 | `APP_MF_BASE_URL`  | `https://wykazpodatnikowvat.mf.gov.pl` | VAT white-list API (test: `wykazpodatnikowvat-test.mf.gov.pl`) |
 | `APP_KRS_BASE_URL` | `https://api-krs.ms.gov.pl` | KRS open API |
 | `APP_HTTP_TIMEOUT_S` | `10` | per-request timeout for registry calls |
+| `APP_USER_DAILY_LIMIT_VERIFY` / `_CHECK` | `200` / `500` | per-user daily budgets (ADR-0019); `0` = unlimited |
+
+REST API endpoints, authentication and key issuing: `apps/api/README.md`.
 
 ## Status
 
-Milestone 0 (repository skeleton, tooling, CI, initial ADRs) - done.
-Milestone 1 (identifier validation, white-list and KRS clients, domain models) - done.
-See `SPEC.md` for the milestone list.
+Milestones 0-6 done (skeleton, register clients, MCP server, persistence, GCP infrastructure,
+flat file, OAuth with per-user limits); milestone 7 (REST API) in review. See `SPEC.md`.

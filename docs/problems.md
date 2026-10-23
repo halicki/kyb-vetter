@@ -41,6 +41,14 @@
 - `neondatabase/neon` provider: check the registry each milestone and switch the `source` when published.
 - RESOLVED 2026-10-23 (ADR-0018): host allow-listing was off on Cloud Run; M6 attaches a custom domain, turns the check on and allow-lists the deterministic `run.app` host via `APP_EXTRA_ALLOWED_HOSTS`.
 
+## Open since M7 (2026-10-23)
+
+- The REST API accepts Auth0 tokens issued for the MCP audience (`https://mcp.<zone>/mcp`); a
+  dedicated API identifier in Auth0 would separate them, not needed while one IdP API serves both.
+- FastAPI 0.162 declares no Python 3.15 classifier (pure Python, runs fine); re-check at upgrades.
+- Background job queue is deferred (ADR index, pending decisions): procrastinate on Postgres when
+  batch verification, webhooks or long reports appear.
+
 ## Open since M6 (2026-10-23)
 
 - Auth0 DCR is enabled in dev for Gemini CLI: an open registration endpoint (anyone can create a

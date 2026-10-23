@@ -66,6 +66,13 @@ Days follow Europe/Warsaw. `verification_history` and cache hits cost nothing.
 - Connectors verified: Claude custom connector (CIMD). Gemini CLI, ChatGPT and Gemini Enterprise
   are documented but untested (`docs/connectors.md`).
 
+## REST API (from M7, 2026-10-23)
+
+- Separate Cloud Run service `api.<zone>` from the same image (ADR-0020); resource-shaped
+  `GET /v1/companies/{nip}[/bank-accounts/{account}|/history]`, RFC 9457 errors.
+- Credentials: `X-API-Key` (issued by the admin CLI, principal = Auth0 `sub` or `client:<name>`)
+  or an Auth0 bearer token; same principal model as MCP.
+
 ## Flat file facts (verified 2026-10-23)
 
 - URL `https://wykazpodatnikowvat.mf.gov.pl/plikplaski/YYYYMMDD.7z`, ~250 MB, 30 days kept, published ~22:10 UTC the evening before the file date (spec: target 00:01).
