@@ -8,19 +8,28 @@ nothing has to be typed besides the URL unless the client lacks dynamic registra
 Status of each guide: **tested** means the flow was run against the dev environment on the date
 given; **untested** means the steps come from the vendor's documentation only.
 
-## Claude (claude.ai, desktop, mobile) - tested: pending (M6a checkpoint)
+## Claude (claude.ai, desktop, mobile) - tested 2026-10-23 on dev
 
 1. Settings → Connectors → *Add custom connector*.
-2. Name: anything; URL: `https://<domain>/mcp`.
-3. Advanced: leave *Use Claude's published identity* (CIMD) selected; Claude falls back to
-   automatic registration (DCR) when the authorization server does not advertise CIMD.
-4. *Add* → Claude opens the Auth0 login; sign in → consent → connector shows as connected.
-5. In a chat, enable the connector and ask: "Verify the Polish company with NIP 3245174504"
-   (dev points at the ministry's test host, so only synthetic companies are known).
+2. URL: `https://<domain>/mcp`. The dialog detects OAuth from the `401` challenge
+   (*Sign in now* - Detected) and CIMD from the Auth0 metadata (*Use Claude's published
+   identity* - Detected). Leave both as detected; *Register automatically* (DCR) is the fallback
+   when the authorization server does not advertise CIMD.
+3. *Add* → Auth0 login (Google or password connection) → consent screen → connector connected.
+4. In a chat, enable the connector and ask: "Verify the Polish company with NIP 3245174504"
+   (dev points at the ministry's test host, so only synthetic companies are known; the model sees
+   `environment: test` in the receipts and says so).
+
+What Claude sends to Auth0 (from the tenant log): `client_id` =
+`https://claude.ai/oauth/mcp-oauth-client-metadata` (Claude's CIMD), `redirect_uri` =
+`https://claude.ai/api/mcp/auth_callback`, `scope=offline_access`, `prompt=consent`,
+`resource=https://<domain>/mcp`, PKCE S256.
 
 Notes: Claude requires a hard `401` on `/mcp` and that the `resource` in the metadata equals the
 URL typed in step 2 (hence `APP_AUTH_AUDIENCE = https://<domain>/mcp`). Claude's egress range
 `160.79.104.0/21` must reach both the server and Auth0 (no WAF challenge in front of either).
+The first attempt failed with "started connecting but didn't finish" before any login page: the
+API in Auth0 had no default permissions for third-party applications (see Troubleshooting).
 
 ## Gemini CLI - tested: pending (M6a checkpoint)
 
@@ -38,7 +47,10 @@ URL typed in step 2 (hence `APP_AUTH_AUDIENCE = https://<domain>/mcp`). Claude's
 ```
 
 Then `gemini`, `/mcp auth <name>` (browser login through Auth0, loopback redirect), `/mcp list`
-shows the tools. Gemini CLI registers through DCR.
+shows the tools. Gemini CLI registers through DCR, so the tenant must have *Dynamic Client
+Registration* enabled (Auth0 → Settings → Advanced); Auth0 warns that this is open registration
+(anyone can create a third-party application in the tenant). Accepted in dev (ADR-0017); prod
+should stay CIMD-only.
 
 ## ChatGPT (Developer Mode) - untested
 

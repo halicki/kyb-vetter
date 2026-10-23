@@ -41,6 +41,22 @@
 - `neondatabase/neon` provider: check the registry each milestone and switch the `source` when published.
 - RESOLVED 2026-10-23 (ADR-0018): host allow-listing was off on Cloud Run; M6 attaches a custom domain, turns the check on and allow-lists the deterministic `run.app` host via `APP_EXTRA_ALLOWED_HOSTS`.
 
+## Open since M6 (2026-10-23)
+
+- Auth0 DCR is enabled in dev for Gemini CLI: an open registration endpoint (anyone can create a
+  third-party application; tenant ACLs are Enterprise-only). Such clients only get
+  `authorization_code`/`refresh_token`, still need a real login and only the API's default
+  permissions, but prod (M8) should keep DCR off and rely on CIMD / pre-registered clients.
+- Cloud Run domain mapping is a preview feature (latency caveats, no production support); the
+  load balancer path (~18 USD/month) is the prod alternative (ADR-0018).
+- Domain ownership verification (Search Console) lives outside Terraform: it is bound to the
+  Google account that ran `terraform apply`, and the TXT record in Cloudflare must stay.
+- ChatGPT Developer Mode and Gemini Enterprise connectors are documented from vendor docs only,
+  untested (no accounts). ChatGPT needs RFC 9207 `iss` (Auth0 advertises it); Gemini Enterprise
+  needs a pre-registered confidential client.
+- Auth0 tenant configuration is manual (`docs/auth0.md`); the `auth0/auth0` Terraform provider is
+  the candidate if the checklist drifts.
+
 ## Open since M5 (2026-10-23)
 
 - The flat file also lists `date + NIP` digests for taxpayers without accounts; `verify_company`/status could use them without quota (not implemented).
