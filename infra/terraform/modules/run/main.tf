@@ -7,8 +7,10 @@ resource "google_service_account" "runtime" {
 locals {
   # Two services from one image (ADR-0020): the MCP server (image CMD) and the REST API.
   services = {
-    mcp = { command = [], domain = var.domain }
-    api = { command = ["python", "-m", "kyb_vetter_api"], domain = var.api_domain }
+    # The MCP service keeps the image CMD, so it can start on the placeholder image. The API overrides
+    # the command, which the placeholder lacks: it is created from the app image CI already pushed.
+    mcp = { command = [], domain = var.domain, image = var.bootstrap_image }
+    api = { command = ["python", "-m", "kyb_vetter_api"], domain = var.api_domain, image = var.app_image }
   }
   # Cloud Run v2 deterministic URL: https://<service>-<project number>.<region>.run.app
   # (the service also answers on a legacy *.a.run.app URL with an unpredictable hash).
@@ -64,7 +66,7 @@ resource "google_cloud_run_v2_service" "this" {
       max_instance_count = 2
     }
     containers {
-      image   = var.bootstrap_image
+      image   = each.value.image
       command = length(each.value.command) == 0 ? null : each.value.command
       ports { container_port = 8080 }
       resources {

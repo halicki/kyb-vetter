@@ -30,6 +30,7 @@ module "run" {
   region                        = var.region
   domain                        = var.domain
   api_domain                    = var.api_domain
+  app_image                     = "${module.registry.repository}/mcp:latest"
   mf_base_url                   = var.mf_base_url
   krs_base_url                  = var.krs_base_url
   database_url_secret_id        = module.secrets.secret_ids["database-url"]

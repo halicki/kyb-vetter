@@ -14,6 +14,10 @@ variable "extra_env" {
   type    = map(string)
   default = {}
 }
+variable "app_image" {
+  type        = string
+  description = "Application image (e.g. <repository>/mcp:latest) for services that override the command"
+}
 variable "bootstrap_image" {
   type    = string
   default = "us-docker.pkg.dev/cloudrun/container/hello"
