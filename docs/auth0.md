@@ -21,7 +21,7 @@ Applications → APIs → Create API:
 - Settings → Access Settings → **Allow Skipping User Consent** off (third-party clients must consent).
 - Permissions: none needed in M6 (the server requires no scopes).
 
-## 3. Tenant settings → Advanced
+## 3. Tenant settings → General
 
 - **Default Audience** = the API identifier above. Without it, tokens requested without an
   audience are opaque JWE, not verifiable JWTs.
