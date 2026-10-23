@@ -44,17 +44,20 @@ class FlatFileProvider:
         *,
         now: Callable[[], datetime] = utcnow,
         refresh_every: timedelta = timedelta(minutes=15),
+        retry_every: timedelta = timedelta(minutes=1),
     ) -> None:
         self._blobs = blobs
         self._now = now
         self._refresh_every = refresh_every
+        self._retry_every = retry_every
         self._index: FlatFileIndex | None = None
         self._checked_at: datetime | None = None
 
     async def current(self) -> FlatFileIndex | None:
-        """The loaded index; re-reads the manifest at most every ``refresh_every``."""
+        """The loaded index; re-reads the manifest every ``refresh_every`` (``retry_every`` while none is loaded)."""
         now = self._now()
-        if self._checked_at is not None and now - self._checked_at < self._refresh_every:
+        window = self._refresh_every if self._index is not None else self._retry_every
+        if self._checked_at is not None and now - self._checked_at < window:
             return self._index
         self._checked_at = now
         try:

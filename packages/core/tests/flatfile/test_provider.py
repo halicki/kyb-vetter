@@ -114,3 +114,20 @@ async def test_unchanged_manifest_after_the_window_keeps_the_loaded_index() -> N
     blobs.reads = 0
     assert await provider.current() is first
     assert blobs.reads == 1  # only the manifest was re-read
+
+
+async def test_without_a_loaded_index_the_manifest_is_rechecked_sooner() -> None:
+    blobs = MemoryBlobStore()
+    clock = Clock()
+    provider = FlatFileProvider(
+        blobs, now=clock, refresh_every=timedelta(minutes=15), retry_every=timedelta(minutes=1)
+    )
+    assert await provider.current() is None
+
+    await publish(blobs, make_index("20261023"))
+    clock.now = NOW + timedelta(seconds=30)
+    assert await provider.current() is None  # still inside the retry window
+    clock.now = NOW + timedelta(seconds=61)
+    loaded = await provider.current()
+    assert loaded is not None
+    assert loaded.date == "20261023"
