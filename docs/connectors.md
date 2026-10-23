@@ -31,7 +31,7 @@ URL typed in step 2 (hence `APP_AUTH_AUDIENCE = https://<domain>/mcp`). Claude's
 The first attempt failed with "started connecting but didn't finish" before any login page: the
 API in Auth0 had no default permissions for third-party applications (see Troubleshooting).
 
-## Gemini CLI - tested: pending (M6a checkpoint)
+## Gemini CLI - untested (owner's decision, 2026-10-23)
 
 `~/.gemini/settings.json`:
 
