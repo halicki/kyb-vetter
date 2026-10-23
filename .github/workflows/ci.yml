@@ -106,6 +106,12 @@ jobs:
           gcloud run jobs execute "${{ vars.GCP_MIGRATE_JOB }}" \
             --project "${{ vars.GCP_PROJECT_ID }}" --region "${{ vars.GCP_REGION }}" --wait
 
+      - name: Roll the flat-file job image
+        run: |
+          gcloud run jobs update "${{ vars.GCP_FLATFILE_JOB }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" --region "${{ vars.GCP_REGION }}" \
+            --image "${IMAGE}:${{ github.sha }}"
+
       - id: deploy
         uses: google-github-actions/deploy-cloudrun@v3
         with:

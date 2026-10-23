@@ -35,6 +35,7 @@ module "run" {
   database_url_direct_secret_id = module.secrets.secret_ids["database-url-direct"]
   # Administrators plus the CI deployer (smoke test after each roll-out). The deployer's e-mail is
   # deterministic, which avoids a dependency cycle with module.github_wif.
+  extra_env = { APP_FLATFILE_BUCKET = "${local.project_id}-flatfile" }
   invoker_members = concat(
     var.invoker_members,
     ["serviceAccount:${var.project_name}-deployer@${local.project_id}.iam.gserviceaccount.com"],
@@ -74,4 +75,12 @@ module "budget" {
   alert_email     = var.alert_email
   amount          = var.budget_amount
   currency        = var.budget_currency
+}
+
+module "flatfile" {
+  source                        = "../../modules/flatfile"
+  project_id                    = local.project_id
+  project_name                  = var.project_name
+  region                        = var.region
+  runtime_service_account_email = module.run.runtime_service_account_email
 }

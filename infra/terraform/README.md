@@ -4,7 +4,7 @@ Everything in GCP is created from here; the database is Neon (ADR-0014). Resourc
 are prefixed with `var.project_name` (ADR-0004). Layout:
 
 ```text
-modules/      project, registry, github-wif, neon, secrets, run (service + migrate job), budget
+modules/      project, registry, github-wif, neon, secrets, run (service + migrate job), flatfile (bucket, job, scheduler), budget
 envs/dev/     main root: GCS backend (dev.backend.hcl)
 envs/dev/bootstrap/   project + state bucket, LOCAL state (git-ignored)
 ```
@@ -55,6 +55,7 @@ Outputs feed the GitHub Actions variables (not secrets) used by the deploy job:
 | `GCP_DEPLOYER_SA` | `deployer_service_account` |
 | `GCP_SERVICE` | `service_name` |
 | `GCP_MIGRATE_JOB` | `migrate_job_name` |
+| `GCP_FLATFILE_JOB` | `flatfile_job_name` |
 
 Set them with `gh variable set NAME --body "$(terraform -chdir=... output -raw ...)"`.
 

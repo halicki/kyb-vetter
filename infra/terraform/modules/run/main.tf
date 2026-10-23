@@ -39,7 +39,7 @@ resource "google_cloud_run_v2_service" "mcp" {
       image = var.bootstrap_image
       ports { container_port = 8080 }
       resources {
-        limits            = { cpu = "1", memory = "512Mi" }
+        limits            = { cpu = "1", memory = "1Gi" } # ~60 MB flat-file index in memory
         cpu_idle          = true
         startup_cpu_boost = true
       }

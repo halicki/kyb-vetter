@@ -7,3 +7,5 @@ output "migrate_job_name" { value = module.run.job_name }
 output "workload_identity_provider" { value = module.github_wif.workload_identity_provider }
 output "deployer_service_account" { value = module.github_wif.deployer_service_account }
 output "neon_project_id" { value = module.neon.project_id }
+output "flatfile_job_name" { value = module.flatfile.job_name }
+output "flatfile_bucket" { value = module.flatfile.bucket }

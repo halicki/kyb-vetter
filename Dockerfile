@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1.7
-# Builds the MCP server image (apps/mcp). The worker (M5) and API (M7) get their own targets later.
+# One image for the MCP server (default CMD) and the worker jobs (`python -m kyb_vetter_worker ...`).
 FROM ghcr.io/astral-sh/uv:python3.15-trixie-slim AS builder
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=0 UV_NO_DEV=1
+# py7zr's codecs (pybcj, pyppmd, inflate64) ship no cp315 wheels yet: build them here, not at runtime.
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 # Dependency layer: only lockfile + manifests, no sources (cached until the lock changes).
 COPY pyproject.toml uv.lock ./
@@ -10,12 +12,13 @@ COPY apps/mcp/pyproject.toml apps/mcp/
 COPY apps/api/pyproject.toml apps/api/
 COPY apps/worker/pyproject.toml apps/worker/
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-workspace --package kyb-vetter-mcp
+    uv sync --frozen --no-install-workspace --package kyb-vetter-mcp --package kyb-vetter-worker
 # Sources, then install the workspace members themselves.
 COPY packages/core/ packages/core/
 COPY apps/mcp/ apps/mcp/
+COPY apps/worker/ apps/worker/
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-editable --package kyb-vetter-mcp
+    uv sync --locked --no-editable --package kyb-vetter-mcp --package kyb-vetter-worker
 
 FROM python:3.15-slim-trixie
 RUN groupadd --system app && useradd --system --gid app --home /app app \
