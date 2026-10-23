@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from kyb_vetter_core.audit import AuditRecorder
     from kyb_vetter_core.clients.protocols import KrsProtocol, WhiteListProtocol
     from kyb_vetter_core.flatfile.index import FlatFileIndex
+    from kyb_vetter_core.ratelimit import UserLimiter
     from kyb_vetter_core.storage.ports import AuditEvent
 
 logger = logging.getLogger(__name__)
@@ -316,12 +317,19 @@ class VerificationService:
         audit: AuditRecorder,
         persistent: bool,
         flatfile: FlatFileSource | None = None,
+        limiter: UserLimiter | None = None,
     ) -> None:
         self._whitelist = whitelist
         self._krs = krs
         self._audit = audit
         self._persistent = persistent
         self._flatfile = flatfile
+        self._limiter = limiter
+
+    async def _reserve(self, principal: str, tool: str) -> None:
+        """Charge the caller's daily budget (ADR-0019); a no-op without a limiter."""
+        if self._limiter is not None:
+            await self._limiter.reserve(principal, tool)
 
     async def verify_company(
         self, nip: str, *, date: date | None = None, principal: str = DEFAULT_PRINCIPAL
@@ -332,6 +340,8 @@ class VerificationService:
             "date": None if date is None else date.isoformat(),
         }
         try:
+            validate_nip(nip)
+            await self._reserve(principal, TOOL_VERIFY_COMPANY)
             result = await self._verify_company(nip, date=date)
         except Exception as exc:
             await self._audit.record_error(
@@ -366,6 +376,9 @@ class VerificationService:
             "date": None if date is None else date.isoformat(),
         }
         try:
+            validate_nip(nip)
+            validate_bank_account(account)
+            await self._reserve(principal, TOOL_CHECK_BANK_ACCOUNT)
             result = await self._check_bank_account(nip, account, date=date)
         except Exception as exc:
             await self._audit.record_error(

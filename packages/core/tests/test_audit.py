@@ -2,7 +2,12 @@ from datetime import UTC, date, datetime
 
 from kyb_vetter_core.audit import AuditRecorder
 from kyb_vetter_core.config import registry_environment
-from kyb_vetter_core.errors import DailyLimitExceededError, InvalidNipError, QuotaExhaustedError
+from kyb_vetter_core.errors import (
+    DailyLimitExceededError,
+    InvalidNipError,
+    QuotaExhaustedError,
+    UserLimitExceededError,
+)
 from kyb_vetter_core.storage.memory import MemoryAuditStore
 from kyb_vetter_core.verification import BankAccountVerification, SourceReceipt
 
@@ -74,6 +79,10 @@ async def test_record_error_classifies_exceptions() -> None:
             DailyLimitExceededError("limit", source="mf-whitelist", code="WL-191", http_status=429),
             "WL-191",
         ),
+        (
+            UserLimitExceededError(tool="verify_company", limit=200, resets_on=date(2026, 10, 23)),
+            "USER_LIMIT",
+        ),
         (RuntimeError("boom"), "RuntimeError"),
     ]
     for exc, code in cases:
@@ -85,7 +94,7 @@ async def test_record_error_classifies_exceptions() -> None:
         assert event.result is None
         assert event.response_sha256 is None
 
-    assert len(await store.history(NIP, principal="local", limit=10)) == 4
+    assert len(await store.history(NIP, principal="local", limit=10)) == 5
 
 
 def test_digest_is_stable_for_equal_results() -> None:

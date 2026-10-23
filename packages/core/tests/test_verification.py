@@ -12,13 +12,14 @@ from kyb_vetter_core.clients import whitelist as whitelist_module
 from kyb_vetter_core.clients.krs import KrsClient
 from kyb_vetter_core.clients.whitelist import WhiteListClient
 from kyb_vetter_core.config import Settings
-from kyb_vetter_core.errors import DailyLimitExceededError, InvalidNipError
+from kyb_vetter_core.errors import DailyLimitExceededError, InvalidNipError, UserLimitExceededError
 from kyb_vetter_core.flatfile.hashing import masked_account, pair_digest
 from kyb_vetter_core.flatfile.index import FlatFileIndex
 from kyb_vetter_core.flatfile.provider import FlatFileProvider
 from kyb_vetter_core.models import VatStatus
+from kyb_vetter_core.ratelimit import UserLimiter, UserLimits
 from kyb_vetter_core.storage.blobs import MemoryBlobStore
-from kyb_vetter_core.storage.memory import MemoryAuditStore
+from kyb_vetter_core.storage.memory import MemoryAuditStore, MemoryQuotaStore
 from kyb_vetter_core.verification import (
     MAX_ACCOUNT_NUMBERS,
     WARN_FLAT_FILE_MISS,
@@ -541,6 +542,78 @@ async def test_verification_history_limit_and_invalid_nip(service: VerificationS
     assert history.entries == ()
     with pytest.raises(InvalidNipError):
         await service.verification_history("1234567890", principal="local")
+
+
+# --- per-user limits --------------------------------------------------------
+
+
+@pytest.fixture
+async def limited_service(
+    audit_store: MemoryAuditStore, monkeypatch: pytest.MonkeyPatch
+) -> AsyncIterator[VerificationService]:
+    monkeypatch.setattr(whitelist_module, "today_in_warsaw", lambda: TODAY)
+    settings = Settings(mf_base_url=MF, krs_base_url=KRS, project_name="unit-test")
+    limiter = UserLimiter(
+        MemoryQuotaStore(),
+        limits=UserLimits(verify_company=1, check_bank_account=1),
+        today=lambda: TODAY,
+    )
+    async with httpx.AsyncClient() as http:
+        yield VerificationService(
+            WhiteListClient(http, settings),
+            KrsClient(http, settings),
+            audit=AuditRecorder(audit_store),
+            persistent=False,
+            limiter=limiter,
+        )
+
+
+async def test_user_limit_refuses_before_the_registry_and_is_audited(
+    limited_service: VerificationService,
+    audit_store: MemoryAuditStore,
+    mock_api: respx.MockRouter,
+    wl_found: dict[str, Any],
+) -> None:
+    wl_found["result"]["subject"]["krs"] = None
+    route = _mock_wl_search(mock_api, wl_found)
+
+    await limited_service.verify_company(NIP, principal="alice")
+    with pytest.raises(UserLimitExceededError):
+        await limited_service.verify_company(NIP, principal="alice")
+    await limited_service.verify_company(NIP, principal="bob")  # someone else's budget
+
+    assert route.call_count == 2
+    events = await audit_store.history(NIP, principal="alice", limit=5)
+    assert [e.outcome for e in events] == ["error", "ok"]
+    assert events[0].error_code == "USER_LIMIT"
+
+
+async def test_user_limit_is_not_consumed_by_invalid_input(
+    limited_service: VerificationService, mock_api: respx.MockRouter, wl_found: dict[str, Any]
+) -> None:
+    wl_found["result"]["subject"]["krs"] = None
+    _mock_wl_search(mock_api, wl_found)
+
+    with pytest.raises(InvalidNipError):
+        await limited_service.verify_company("1234567890", principal="alice")
+    await limited_service.verify_company(NIP, principal="alice")  # the budget of 1 is still there
+
+
+async def test_user_limit_applies_to_bank_account_checks_too(
+    limited_service: VerificationService,
+    mock_api: respx.MockRouter,
+    fixture_json: Callable[[str], Any],
+) -> None:
+    mock_api.get(f"{MF}/api/check/nip/{NIP}/bank-account/{NRB}").respond(
+        200, json=fixture_json("whitelist/check_nie")
+    )
+    mock_api.get(f"{MF}/api2/status/nip/{NIP}").respond(
+        200, json=fixture_json("whitelist/status_czynny")
+    )
+
+    await limited_service.check_bank_account(NIP, NRB, principal="alice")
+    with pytest.raises(UserLimitExceededError):
+        await limited_service.check_bank_account(NIP, NRB, principal="alice")
 
 
 async def test_verification_history_shows_only_the_callers_own_rows(

@@ -7,7 +7,12 @@ from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 lazy from collections.abc import Callable
 
-from kyb_vetter_core.errors import InvalidIdentifierError, QuotaExhaustedError, RegistryError
+from kyb_vetter_core.errors import (
+    InvalidIdentifierError,
+    QuotaExhaustedError,
+    RegistryError,
+    UserLimitExceededError,
+)
 from kyb_vetter_core.storage.ports import AuditEvent
 
 if TYPE_CHECKING:
@@ -18,6 +23,7 @@ if TYPE_CHECKING:
 
 ERROR_INVALID_INPUT = "INVALID_INPUT"
 ERROR_QUOTA_GUARD = "QUOTA_GUARD"
+ERROR_USER_LIMIT = "USER_LIMIT"
 
 
 def utcnow() -> datetime:
@@ -30,6 +36,8 @@ def error_code(exc: BaseException) -> str:
             return ERROR_INVALID_INPUT
         case QuotaExhaustedError():
             return ERROR_QUOTA_GUARD
+        case UserLimitExceededError():
+            return ERROR_USER_LIMIT
         case RegistryError() if exc.code is not None:
             return exc.code
     return type(exc).__name__

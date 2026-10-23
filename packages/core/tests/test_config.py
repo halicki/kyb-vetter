@@ -138,3 +138,15 @@ def test_auth_audience_can_be_overridden_and_issuer_without_slash_works(
 
     assert settings.auth_jwks_url == "https://idp.example/.well-known/jwks.json"
     assert settings.auth_resource_url == "https://api.acme.example/mcp"
+
+
+def test_user_daily_limits_default_and_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("APP_USER_DAILY_LIMIT_VERIFY", raising=False)
+    monkeypatch.delenv("APP_USER_DAILY_LIMIT_CHECK", raising=False)
+    defaults = Settings()
+    assert (defaults.user_daily_limit_verify, defaults.user_daily_limit_check) == (200, 500)
+
+    monkeypatch.setenv("APP_USER_DAILY_LIMIT_VERIFY", "0")
+    monkeypatch.setenv("APP_USER_DAILY_LIMIT_CHECK", "7")
+    custom = Settings()
+    assert (custom.user_daily_limit_verify, custom.user_daily_limit_check) == (0, 7)

@@ -164,3 +164,16 @@ class QuotaExhaustedError(CoreError):
             f"quota guard: {bucket} used {used}/{threshold} today; "
             f"resets at midnight Europe/Warsaw ({resets_on.isoformat()})"
         )
+
+
+class UserLimitExceededError(CoreError):
+    """The caller's own daily budget for a tool is used up (ADR-0019); no registry call was made."""
+
+    def __init__(self, *, tool: str, limit: int, resets_on: date) -> None:
+        self.tool = tool
+        self.limit = limit
+        self.resets_on = resets_on
+        super().__init__(
+            f"user limit: {limit} calls to {tool} per day used up; "
+            f"resets at midnight Europe/Warsaw ({resets_on.isoformat()})"
+        )

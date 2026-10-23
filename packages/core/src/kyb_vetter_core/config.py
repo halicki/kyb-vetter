@@ -29,6 +29,10 @@ DEFAULT_MF_BASE_URL = "https://wykazpodatnikowvat.mf.gov.pl"
 DEFAULT_KRS_BASE_URL = "https://api-krs.ms.gov.pl"
 """National Court Register open API."""
 
+DEFAULT_USER_LIMIT_VERIFY = 200
+DEFAULT_USER_LIMIT_CHECK = 500
+"""Per-user daily call budgets (ADR-0019); 0 disables a limit."""
+
 RegistryEnvironment = Literal["production", "test"]
 
 PRODUCTION_REGISTRY_HOSTS: frozenset[str] = frozenset(
@@ -89,6 +93,12 @@ class Settings(BaseSettings):
     auth_audience: str | None = None
     """Resource identifier the tokens must carry in ``aud`` (APP_AUTH_AUDIENCE); defaults to the
     public MCP URL. This is also the RFC 9728 ``resource`` the server advertises."""
+
+    user_daily_limit_verify: int = DEFAULT_USER_LIMIT_VERIFY
+    """``verify_company`` calls per user per day (APP_USER_DAILY_LIMIT_VERIFY); 0 = unlimited."""
+
+    user_daily_limit_check: int = DEFAULT_USER_LIMIT_CHECK
+    """``check_bank_account`` calls per user per day (APP_USER_DAILY_LIMIT_CHECK); 0 = unlimited."""
 
     @field_validator("mf_base_url", "krs_base_url")
     @classmethod

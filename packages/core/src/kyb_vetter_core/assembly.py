@@ -13,6 +13,7 @@ from kyb_vetter_core.cache import CachedKrsClient, CachedWhiteListClient
 from kyb_vetter_core.clients.krs import KrsClient
 from kyb_vetter_core.clients.whitelist import WhiteListClient, today_in_warsaw
 from kyb_vetter_core.quota import GuardedWhiteListClient, QuotaGuard
+from kyb_vetter_core.ratelimit import UserLimiter, UserLimits
 from kyb_vetter_core.verification import VerificationService
 lazy from kyb_vetter_core.flatfile.provider import FlatFileProvider
 
@@ -42,4 +43,5 @@ def build_verification_service(
         audit=AuditRecorder(stores.audit),
         persistent=stores.persistent,
         flatfile=flatfile if flatfile is not None else FlatFileProvider(stores.blobs),
+        limiter=UserLimiter(stores.quota, limits=UserLimits.from_settings(settings), today=today),
     )
