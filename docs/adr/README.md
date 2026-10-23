@@ -30,4 +30,5 @@ acceptance - supersede with a new ADR instead.
 
 | Topic | Decide by | Notes |
 |-------|-----------|-------|
+| Background job queue | When a trigger appears | Not needed while every call is synchronous and sub-second. Triggers: batch verification (hundreds of NIPs), webhooks with retries, long reports (PDF). Candidate: procrastinate (Postgres-backed, reuses Neon). Core services are plain async functions, so tasks call them directly; no event-driven rewrite needed. Noted 2026-10-23. |
 | Audit-log retention and GDPR policy | M8 | CEIDG data (natural persons) is never persisted; define retention for audit rows. |
