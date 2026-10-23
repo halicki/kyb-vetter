@@ -46,6 +46,14 @@ created by Terraform too.
   (dependency layer from the lockfile, then workspace install with
   `--package kyb-vetter-mcp --no-editable`), runtime `python:3.15-slim-trixie`,
   non-root user, Alembic files copied next to the venv for the job.
+  Both `FROM` lines carry the tag for readability and the multi-arch index
+  digest for reproducibility (`tag@sha256:...`); a floating tag would let a
+  Python patch or Debian point release change between CI builds with no
+  trace in git. Dependabot (`.github/dependabot.yml`; `docker`,
+  `github-actions` and `uv` ecosystems, weekly) proposes digest, action and
+  lockfile bumps as pull requests, so CI runs on every update before it
+  reaches Cloud Run; minor and patch Python bumps are grouped into one PR. Debian trixie is the current stable release and Python has no
+  LTS line (ADR-0002), so pinning plus reviewed bumps is the stability lever.
 - **Budget** with 50/90/100 % e-mail alerts, amount and currency from tfvars.
 
 ## Consequences
