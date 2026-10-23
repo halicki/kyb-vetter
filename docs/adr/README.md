@@ -18,15 +18,15 @@ acceptance - supersede with a new ADR instead.
 | [0012](0012-untrusted-registry-data.md) | Register data is untrusted input to the model | Accepted |
 | [0010](0010-register-client-design.md) | Register client design: local validation, injected httpx, no retries, receipts, data minimisation | Accepted |
 | [0008](0008-module-boundaries-tach.md) | Module boundaries enforced with tach | Accepted |
+| [0013](0013-persistence-and-quota-guard.md) | Persistence, quota guard, audit log and cache | Accepted |
+| [0014](0014-cloud-database-neon.md) | Cloud database: Neon over Cloud SQL | Accepted |
+| [0015](0015-infrastructure-dev.md) | Development infrastructure: two Terraform roots, keyless CI, image rolls | Accepted |
+| [0016](0016-flat-file.md) | Daily MF flat file as the primary source for account checks | Accepted |
+| [0017](0017-identity-provider-auth0.md) | Auth0 (EU tenant) as the identity provider for MCP OAuth | Accepted |
+| [0018](0018-domain-and-dns.md) | Working domain on Cloudflare, Cloud Run domain mapping in dev | Accepted |
 
 ## Pending decisions
 
 | Topic | Decide by | Notes |
 |-------|-----------|-------|
-| Identity provider for MCP OAuth | M6 | Candidates: WorkOS AuthKit, Auth0, Stytch, Descope, Google Identity Platform. Criteria: MCP auth compliance (RFC 9728 PRM, CIMD, PKCE, refresh tokens), starting cost, EU data residency. |
 | Audit-log retention and GDPR policy | M8 | CEIDG data (natural persons) is never persisted; define retention for audit rows. |
-| MF rate-limit guard storage (Postgres vs in-memory) | M3 | Hosted server shares one IP; counters must survive restarts and multiple instances. Three counters: `status` (50k), `search` (100 queries, batch counted pessimistically as 30), `check` (5k). |
-| [0013](0013-persistence-and-quota-guard.md) | Persistence, quota guard, audit log and cache | Accepted |
-| [0014](0014-cloud-database-neon.md) | Cloud database: Neon over Cloud SQL | Accepted |
-| [0015](0015-infrastructure-dev.md) | Development infrastructure: two Terraform roots, keyless CI, image rolls | Accepted |
-| [0016](0016-flat-file.md) | Daily MF flat file as the primary source for account checks | Accepted |

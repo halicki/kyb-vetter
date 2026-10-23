@@ -14,9 +14,10 @@
   undocumented; measure on the test host before M3.
 - (2026-10-22) `gcloud` auth token expired on the dev machine; `terraform`
   not installed. Both needed before milestone 4.
-- (2026-10-22) MCP SDK 2.3.0: server-side CIMD support unverified; tasks
-  extension, DPoP and `jwt-bearer` grant not implemented. Re-check before
-  milestone 6.
+- RESOLVED 2026-10-23 (ADR-0017): MCP SDK 2.3.0 server-side CIMD support was
+  unverified. Not needed: CIMD and DCR are handled by the identity provider;
+  the server only verifies tokens (`TokenVerifier`, PRM route). Tasks
+  extension, DPoP and `jwt-bearer` remain unimplemented in the SDK.
 
 ## Closed
 - (2026-10-22) Python 3.15 wheel availability: all compiled dependencies ship
@@ -38,7 +39,7 @@
 
 - ADC quota project must point at a project with open billing, otherwise the GCS backend fails with `UserProjectAccountProblem`; documented in `infra/terraform/README.md`.
 - `neondatabase/neon` provider: check the registry each milestone and switch the `source` when published.
-- Host allow-listing is off on Cloud Run (`APP_HOST_CHECK=false`); revisit when a custom domain is attached in M6 (then allow-list the domain and turn the check back on).
+- RESOLVED 2026-10-23 (ADR-0018): host allow-listing was off on Cloud Run; M6 attaches a custom domain, turns the check on and allow-lists the deterministic `run.app` host via `APP_EXTRA_ALLOWED_HOSTS`.
 
 ## Open since M5 (2026-10-23)
 
