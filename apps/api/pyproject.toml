@@ -3,8 +3,16 @@ name = "kyb-vetter-api"
 version = "0.1.0"
 description = "REST API (FastAPI) - thin adapter over core"
 requires-python = ">=3.15"
-dependencies = []  # kyb-vetter-core is added when this app gains behaviour (ADR-0008)
+dependencies = [
+    "kyb-vetter-core",
+    "fastapi>=0.162",
+    "httpx>=0.28",
+    "uvicorn>=0.54",
+]
 
 [build-system]
 requires = ["uv_build>=0.13,<0.14"]
 build-backend = "uv_build"
+
+[tool.uv.sources]
+kyb-vetter-core = { workspace = true }
