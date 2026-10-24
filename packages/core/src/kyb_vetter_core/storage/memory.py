@@ -35,6 +35,13 @@ class MemoryQuotaStore:
     async def usage(self, bucket: str, day: date) -> int:
         return self._counts.get((bucket, day), 0)
 
+    async def purge_before(self, day: date) -> int:
+        async with self._lock:
+            stale = [key for key in self._counts if key[1] < day]
+            for key in stale:
+                del self._counts[key]
+        return len(stale)
+
 
 class MemoryAuditStore:
     def __init__(self) -> None:
@@ -47,6 +54,11 @@ class MemoryAuditStore:
         matching = [e for e in self._events if e.nip == nip and e.principal == principal]
         matching.sort(key=lambda e: e.ts, reverse=True)
         return matching[:limit]
+
+    async def purge_before(self, cutoff: datetime) -> int:
+        before = len(self._events)
+        self._events = [e for e in self._events if e.ts >= cutoff]
+        return before - len(self._events)
 
 
 class MemoryCacheStore:
@@ -63,6 +75,12 @@ class MemoryCacheStore:
 
     async def put(self, entry: CacheEntry) -> None:
         self._entries[(entry.source, entry.cache_key, entry.queried_date)] = entry
+
+    async def purge_expired(self, now: datetime) -> int:
+        stale = [key for key, entry in self._entries.items() if entry.expires_at <= now]
+        for key in stale:
+            del self._entries[key]
+        return len(stale)
 
 
 class MemoryApiKeyStore:

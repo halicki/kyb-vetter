@@ -59,6 +59,7 @@ Outputs feed the GitHub Actions variables (not secrets) used by the deploy job:
 | `GCP_MIGRATE_JOB` | `migrate_job_name` |
 | `GCP_FLATFILE_JOB` | `flatfile_job_name` |
 | `GCP_API_SERVICE` | `api_service_name` (enables the REST deploy step, ADR-0020) |
+| `GCP_PURGE_JOB` | `purge_job_name` (rolls the retention job image, ADR-0022) |
 | `MCP_PUBLIC` | `"true"` once `public = true` has been applied (enables the smoke tests) |
 
 Set them with `gh variable set NAME --body "$(terraform -chdir=... output -raw ...)"`.

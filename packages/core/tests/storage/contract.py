@@ -55,6 +55,12 @@ async def quota_contract(store: QuotaStore) -> None:
     await store.exhaust("wl_status", DAY, limit=5)
     assert await store.usage("wl_status", DAY) == 5
     assert await store.try_reserve("wl_status", DAY, limit=5) is None
+    # housekeeping: counters before a day are dropped, that day and later stay
+    assert (
+        await store.purge_before(DAY + timedelta(days=1)) == 3
+    )  # wl_search, wl_check, wl_status on DAY
+    assert await store.usage("wl_search", DAY) == 0
+    assert await store.usage("wl_search", DAY + timedelta(days=1)) == 1
 
 
 async def audit_contract(store: AuditStore) -> None:
@@ -73,6 +79,11 @@ async def audit_contract(store: AuditStore) -> None:
     assert await store.history("1234563218", principal="local", limit=1) == [newer]
     assert await store.history("1234563218", principal="alice", limit=10) == [someone_else]
     assert await store.history("0000000000", principal="local", limit=10) == []
+    # retention: rows before the cutoff go, the cutoff instant itself stays
+    assert await store.purge_before(NOW) == 1  # only `older`
+    assert [e.id for e in await store.history("1234563218", principal="local", limit=10)] == [
+        newer.id
+    ]
 
 
 async def cache_contract(store: CacheStore) -> None:
@@ -100,6 +111,9 @@ async def cache_contract(store: CacheStore) -> None:
     got = await store.get("mf-whitelist", "1234563218", DAY, now=NOW + timedelta(hours=2))
     assert got is not None
     assert got.payload == {"subject": {"name": "X"}}
+    # housekeeping: expired rows are physically removed
+    assert await store.purge_expired(NOW + timedelta(hours=4)) == 1
+    assert await store.purge_expired(NOW + timedelta(hours=4)) == 0
 
 
 def make_key(prefix: str = "abcdefgh", principal: str = "auth0|alice") -> ApiKeyRecord:

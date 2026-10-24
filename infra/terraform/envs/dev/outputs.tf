@@ -12,3 +12,4 @@ output "deployer_service_account" { value = module.github_wif.deployer_service_a
 output "neon_project_id" { value = module.neon.project_id }
 output "flatfile_job_name" { value = module.flatfile.job_name }
 output "flatfile_bucket" { value = module.flatfile.bucket }
+output "purge_job_name" { value = module.purge.job_name }

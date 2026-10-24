@@ -10,7 +10,7 @@ from typing import Any
 lazy import uuid
 lazy from collections.abc import AsyncGenerator
 
-from sqlalchemy import DateTime, Index, func, select, update
+from sqlalchemy import DateTime, Index, delete, func, select, update
 from sqlalchemy.dialects.postgresql import JSONB, insert
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -114,6 +114,11 @@ class PostgresQuotaStore:
             )
         return 0 if count is None else int(count)
 
+    async def purge_before(self, day: date) -> int:
+        async with self._sessions.begin() as session:
+            result = await session.execute(delete(QuotaCounterRow).where(QuotaCounterRow.day < day))
+        return int(result.rowcount)
+
 
 class PostgresAuditStore:
     def __init__(self, sessions: SessionFactory) -> None:
@@ -166,6 +171,11 @@ class PostgresAuditStore:
             for r in rows
         ]
 
+    async def purge_before(self, cutoff: datetime) -> int:
+        async with self._sessions.begin() as session:
+            result = await session.execute(delete(AuditEventRow).where(AuditEventRow.ts < cutoff))
+        return int(result.rowcount)
+
 
 class PostgresCacheStore:
     def __init__(self, sessions: SessionFactory) -> None:
@@ -212,6 +222,11 @@ class PostgresCacheStore:
         )
         async with self._sessions.begin() as session:
             await session.execute(stmt)
+
+    async def purge_expired(self, now: datetime) -> int:
+        async with self._sessions.begin() as session:
+            result = await session.execute(delete(CacheRow).where(CacheRow.expires_at <= now))
+        return int(result.rowcount)
 
 
 class PostgresApiKeyStore:

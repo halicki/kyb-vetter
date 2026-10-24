@@ -210,6 +210,10 @@ path = "kyb_vetter_core.storage.postgres"
 depends_on = ["kyb_vetter_core.storage.ports", "kyb_vetter_core.telemetry"]
 
 [[tool.tach.modules]]
+path = "kyb_vetter_core.retention"
+depends_on = []  # storage ports imported under TYPE_CHECKING only
+
+[[tool.tach.modules]]
 path = "kyb_vetter_core.telemetry"
 depends_on = []  # config imported under TYPE_CHECKING only
 

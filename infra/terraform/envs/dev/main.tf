@@ -87,6 +87,18 @@ module "secrets" {
   accessor_service_account = "${var.project_name}-run@${local.project_id}.iam.gserviceaccount.com"
 }
 
+# Retention housekeeping (ADR-0022).
+module "purge" {
+  source                          = "../../modules/purge"
+  project_id                      = local.project_id
+  project_name                    = var.project_name
+  region                          = var.region
+  runtime_service_account_email   = module.run.runtime_service_account_email
+  scheduler_service_account_email = module.flatfile.scheduler_service_account_email
+  database_url_direct_secret_id   = module.secrets.secret_ids["database-url-direct"]
+  app_image                       = "${module.registry.repository}/mcp:latest"
+}
+
 module "github_wif" {
   source                       = "../../modules/github-wif"
   project_id                   = local.project_id

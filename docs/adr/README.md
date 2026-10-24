@@ -27,10 +27,10 @@ acceptance - supersede with a new ADR instead.
 | [0019](0019-per-user-limits-and-api-keys.md) | Per-user daily limits and API keys | Accepted |
 | [0020](0020-rest-api.md) | REST API as a separate Cloud Run service | Accepted |
 | [0021](0021-observability.md) | Structured logs and OpenTelemetry traces | Accepted |
+| [0022](0022-retention.md) | Audit retention and housekeeping | Accepted |
 
 ## Pending decisions
 
 | Topic | Decide by | Notes |
 |-------|-----------|-------|
 | Background job queue | When a trigger appears | Not needed while every call is synchronous and sub-second. Triggers: batch verification (hundreds of NIPs), webhooks with retries, long reports (PDF). Candidate: procrastinate (Postgres-backed, reuses Neon). Core services are plain async functions, so tasks call them directly; no event-driven rewrite needed. Noted 2026-10-23. |
-| Audit-log retention and GDPR policy | M8 | CEIDG data (natural persons) is never persisted; define retention for audit rows. |

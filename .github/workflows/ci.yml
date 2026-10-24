@@ -112,6 +112,13 @@ jobs:
             --project "${{ vars.GCP_PROJECT_ID }}" --region "${{ vars.GCP_REGION }}" \
             --image "${IMAGE}:${{ github.sha }}"
 
+      - name: Roll the purge job image
+        if: vars.GCP_PURGE_JOB != ''
+        run: |
+          gcloud run jobs update "${{ vars.GCP_PURGE_JOB }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" --region "${{ vars.GCP_REGION }}" \
+            --image "${IMAGE}:${{ github.sha }}"
+
       - id: deploy
         uses: google-github-actions/deploy-cloudrun@v3
         with:

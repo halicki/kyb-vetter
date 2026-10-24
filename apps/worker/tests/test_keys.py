@@ -87,3 +87,23 @@ async def _run(argv: list[str]) -> int:
     import asyncio
 
     return await asyncio.to_thread(main, argv)
+
+
+def test_purge_refuses_to_run_without_a_database(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("APP_DATABASE_URL", raising=False)
+    assert main(["purge"]) == EXIT_USAGE
+
+
+@pytest.mark.db
+async def test_purge_cli_runs_against_postgres(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    if DATABASE_URL is None:
+        pytest.skip("APP_TEST_DATABASE_URL not set")
+    engine = make_engine(DATABASE_URL)
+    async with engine.begin() as conn:
+        await conn.run_sync(_upgrade)
+    await engine.dispose()
+    monkeypatch.setenv("APP_DATABASE_URL", DATABASE_URL)
+    assert await _run(["purge"]) == EXIT_OK
+    assert "audit_events=" in capsys.readouterr().err

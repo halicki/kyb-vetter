@@ -77,12 +77,20 @@ class QuotaStore(Protocol):
 
     async def usage(self, bucket: str, day: date) -> int: ...
 
+    async def purge_before(self, day: date) -> int:
+        """Drop counters for days before ``day``; returns how many rows went."""
+        ...
+
 
 class AuditStore(Protocol):
     async def record(self, event: AuditEvent) -> None: ...
 
     async def history(self, nip: str, *, principal: str, limit: int) -> list[AuditEvent]:
         """Events for ``nip`` recorded for ``principal``, newest first. Never cross-user."""
+        ...
+
+    async def purge_before(self, cutoff: datetime) -> int:
+        """Drop events with ``ts`` before ``cutoff`` (retention, ADR-0022); returns the count."""
         ...
 
 
@@ -105,6 +113,10 @@ class CacheStore(Protocol):
 
     async def put(self, entry: CacheEntry) -> None:
         """Insert or replace."""
+        ...
+
+    async def purge_expired(self, now: datetime) -> int:
+        """Physically remove entries expired at ``now``; returns the count."""
         ...
 
 

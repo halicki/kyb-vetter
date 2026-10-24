@@ -2,6 +2,7 @@
 
 ``python -m kyb_vetter_worker flatfile [--date YYYYMMDD] [--force]``
 ``python -m kyb_vetter_worker keys issue --principal P --name N | list --principal P | revoke --prefix X``
+``python -m kyb_vetter_worker purge``  apply the retention rules (ADR-0022)
 """
 
 import argparse
@@ -16,6 +17,7 @@ import httpx
 
 from kyb_vetter_core.config import get_settings
 from kyb_vetter_core.errors import CoreError
+from kyb_vetter_core.retention import purge
 from kyb_vetter_core.storage import open_stores
 from kyb_vetter_core.telemetry import configure_logging
 from kyb_vetter_worker.flatfile import run_flatfile
@@ -53,7 +55,20 @@ def _parser() -> argparse.ArgumentParser:
     listing.add_argument("--principal", required=True)
     revoke = keys_sub.add_parser("revoke", help="disable a key by its prefix")
     revoke.add_argument("--prefix", required=True)
+    sub.add_parser("purge", help="apply retention: old audit rows, counters, expired cache")
     return parser
+
+
+async def _purge() -> int:
+    get_settings.cache_clear()
+    settings = get_settings()
+    if settings.database_url is None:
+        logger.error("purge needs APP_DATABASE_URL")
+        return EXIT_USAGE
+    async with open_stores(settings) as stores:
+        report = await purge(stores, now=datetime.now(tz=UTC))
+    logger.info("%s", report)
+    return EXIT_OK
 
 
 async def _keys(args: argparse.Namespace) -> int:
@@ -102,6 +117,8 @@ def main(argv: list[str]) -> int:
         return EXIT_USAGE if exc.code else EXIT_OK
     if args.command == "keys":
         return asyncio.run(_keys(args))
+    if args.command == "purge":
+        return asyncio.run(_purge())
     try:
         return asyncio.run(_flatfile(args.date, args.force, args.workdir))
     except CoreError as exc:
