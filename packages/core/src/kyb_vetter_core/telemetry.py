@@ -36,6 +36,8 @@ if TYPE_CHECKING:
 
     from kyb_vetter_core.config import Settings
 
+logger = logging.getLogger(__name__)
+
 OTLP_ENDPOINT = "telemetry.googleapis.com:443"
 _DIGITS = re.compile(r"\d{7,}")
 _SEVERITY = {
@@ -107,7 +109,7 @@ def configure_logging(settings: Settings, *, stream: TextIO | None = None) -> No
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
-def _exporter_factory(**kwargs: Any) -> SpanExporter:  # pragma: no cover - needs Google credentials
+def _exporter_factory() -> SpanExporter:  # pragma: no cover - needs Google credentials
     import google.auth
     import google.auth.transport.requests
     import grpc
@@ -121,14 +123,15 @@ def _exporter_factory(**kwargs: Any) -> SpanExporter:  # pragma: no cover - need
     channel = grpc.composite_channel_credentials(
         grpc.ssl_channel_credentials(), grpc.metadata_call_credentials(plugin)
     )
-    return OTLPSpanExporter(endpoint=OTLP_ENDPOINT, credentials=channel, **kwargs)
+    return OTLPSpanExporter(endpoint=OTLP_ENDPOINT, credentials=channel)
 
 
-_EXPORTER_FACTORY: Callable[..., SpanExporter] = _exporter_factory
+_EXPORTER_FACTORY: Callable[[], SpanExporter] = _exporter_factory
 
 
-def _gcp_exporter(settings: Settings) -> SpanExporter:
-    return _EXPORTER_FACTORY(project_id=settings.gcp_project)
+def _gcp_exporter(_settings: Settings) -> SpanExporter:
+    """The project is not an exporter argument: it travels as the ``gcp.project_id`` resource attribute."""
+    return _EXPORTER_FACTORY()
 
 
 def configure_tracing(settings: Settings, *, role: str) -> TracerProvider | None:
@@ -138,8 +141,15 @@ def configure_tracing(settings: Settings, *, role: str) -> TracerProvider | None
     attributes: dict[str, Any] = {"service.name": f"{settings.project_name}-{role}"}
     if settings.gcp_project is not None:
         attributes["gcp.project_id"] = settings.gcp_project
+    try:
+        exporter = _gcp_exporter(settings)
+    except Exception as exc:  # telemetry must never stop the service
+        logger.warning(
+            "tracing disabled: exporter setup failed with %s: %s", type(exc).__name__, exc
+        )
+        return None
     provider = TracerProvider(resource=Resource.create(attributes))
-    provider.add_span_processor(BatchSpanProcessor(_gcp_exporter(settings)))
+    provider.add_span_processor(BatchSpanProcessor(exporter))
     trace.set_tracer_provider(provider)
     HTTPXClientInstrumentor().instrument(tracer_provider=provider)
     return provider

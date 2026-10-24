@@ -150,16 +150,31 @@ def test_tracing_without_a_project_omits_the_gcp_resource_attribute(
         telemetry.shutdown_tracing(provider)
 
 
-def test_gcp_exporter_is_built_lazily_with_the_project(monkeypatch: pytest.MonkeyPatch) -> None:
-    captured: dict[str, object] = {}
+def test_gcp_exporter_factory_takes_no_arguments(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[tuple[object, ...]] = []
 
-    class FakeExporter:
-        def __init__(self, **kwargs: object) -> None:
-            captured.update(kwargs)
+    class FakeExporter(InMemorySpanExporter):
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            calls.append((args, kwargs))
+            super().__init__()
 
     monkeypatch.setattr(telemetry, "_EXPORTER_FACTORY", FakeExporter)
     telemetry._gcp_exporter(Settings(gcp_project="proj-9"))
-    assert captured["project_id"] == "proj-9"
+    assert calls == [((), {})]  # the project travels as the gcp.project_id resource attribute
+
+
+def test_exporter_failure_disables_tracing_but_never_stops_startup(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    def broken(_settings: Settings) -> InMemorySpanExporter:
+        raise RuntimeError("no credentials here")
+
+    monkeypatch.setattr(telemetry, "_gcp_exporter", broken)
+    with caplog.at_level(logging.WARNING, logger="kyb_vetter_core.telemetry"):
+        provider = configure_tracing(Settings(trace_export="gcp", project_name="x"), role="api")
+    assert provider is None
+    assert "tracing disabled" in caplog.text
+    assert "RuntimeError" in caplog.text
 
 
 def test_in_memory_processor_helper_is_not_needed_by_production_code() -> None:
