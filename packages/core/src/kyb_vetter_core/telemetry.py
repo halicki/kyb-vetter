@@ -11,7 +11,8 @@ same reason.
 Tracing: an SDK tracer provider is installed only when ``trace_export`` asks
 for it; spans go to Cloud Trace through OTLP/gRPC on ``telemetry.googleapis.com``
 with the runtime service account's credentials (the project is the
-``gcp.project_id`` resource attribute). ``httpx`` is instrumented globally;
+``gcp.project_id`` resource attribute); every span is sampled regardless of
+the platform's unsampled ``traceparent``. ``httpx`` is instrumented globally;
 ASGI apps are instrumented by their adapters. Database spans wait for an
 instrumentor that supports SQLAlchemy 2.1 (see problems.md). With no
 provider, every instrumented call is a no-op.
@@ -30,6 +31,7 @@ from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter
+from opentelemetry.sdk.trace.sampling import ALWAYS_ON
 
 if TYPE_CHECKING:
     from kyb_vetter_core.config import Settings
@@ -146,7 +148,10 @@ def configure_tracing(settings: Settings, *, role: str) -> TracerProvider | None
             "tracing disabled: exporter setup failed with %s: %s", type(exc).__name__, exc
         )
         return None
-    provider = TracerProvider(resource=Resource.create(attributes))
+    # Cloud Run forwards `traceparent` with the sampled flag off; the default parent-based sampler
+    # would then drop every span. Sample everything (traffic is small) but keep the parent's trace
+    # id so request logs and spans correlate; switch to a ratio sampler when volume grows.
+    provider = TracerProvider(resource=Resource.create(attributes), sampler=ALWAYS_ON)
     provider.add_span_processor(BatchSpanProcessor(exporter))
     trace.set_tracer_provider(provider)
     HTTPXClientInstrumentor().instrument(tracer_provider=provider)

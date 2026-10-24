@@ -3,6 +3,7 @@
 from collections.abc import Callable
 from typing import Any
 
+import pytest
 import respx
 
 from kyb_vetter_core.config import Settings
@@ -139,3 +140,34 @@ async def test_register_down_is_503_and_rejection_is_502(
     assert down.json()["type"].endswith("/registry-unavailable")
     assert rejected.status_code == 502
     assert rejected.json()["type"].endswith("/registry-rejected")
+
+
+async def test_requests_are_traced_even_when_the_platform_parent_is_unsampled(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Cloud Run forwards `traceparent` with the sampled flag off; our spans must still be recorded."""
+    from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+
+    from kyb_vetter_core import telemetry
+
+    exporter = InMemorySpanExporter()
+    monkeypatch.setattr(telemetry, "_gcp_exporter", lambda _s: exporter)
+    traced = settings.model_copy(update={"trace_export": "gcp", "gcp_project": "p"})
+    provider = telemetry.configure_tracing(traced, role="api")
+    assert provider is not None
+    try:
+        async with serve(traced) as (http, _):
+            unsampled_parent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00"
+            response = await http.get("/health", headers={"traceparent": unsampled_parent})
+        provider.force_flush()
+    finally:
+        telemetry.shutdown_tracing(provider)
+
+    assert response.status_code == 200
+    spans = exporter.get_finished_spans()
+    assert any(s.name.endswith("/health") or "GET" in s.name for s in spans), [
+        s.name for s in spans
+    ]
+    assert (
+        f"{spans[0].context.trace_id:032x}" == "4bf92f3577b34da6a3ce929d0e0e4736"
+    )  # id kept for log correlation
