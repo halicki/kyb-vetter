@@ -16,6 +16,7 @@ from fastapi import Depends, FastAPI, Path, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from kyb_vetter_core.assembly import build_verification_service
 from kyb_vetter_core.auth import JwksCache, JwtVerifier
@@ -291,4 +292,5 @@ def build_app(settings: Settings) -> FastAPI:
         except InvalidIdentifierError as exc:
             raise core_problem(exc) from exc
 
+    FastAPIInstrumentor.instrument_app(app)  # request spans; a no-op without a tracer provider
     return app

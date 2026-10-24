@@ -26,6 +26,7 @@ acceptance - supersede with a new ADR instead.
 | [0018](0018-domain-and-dns.md) | Working domain on Cloudflare, Cloud Run domain mapping in dev | Accepted |
 | [0019](0019-per-user-limits-and-api-keys.md) | Per-user daily limits and API keys | Accepted |
 | [0020](0020-rest-api.md) | REST API as a separate Cloud Run service | Accepted |
+| [0021](0021-observability.md) | Structured logs and OpenTelemetry traces | Accepted |
 
 ## Pending decisions
 

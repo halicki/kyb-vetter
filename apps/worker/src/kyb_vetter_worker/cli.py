@@ -17,6 +17,7 @@ import httpx
 from kyb_vetter_core.config import get_settings
 from kyb_vetter_core.errors import CoreError
 from kyb_vetter_core.storage import open_stores
+from kyb_vetter_core.telemetry import configure_logging
 from kyb_vetter_worker.flatfile import run_flatfile
 from kyb_vetter_worker.keys import issue_key, list_keys, revoke_key
 
@@ -93,11 +94,8 @@ async def _flatfile(date: str | None, force: bool, workdir: Path | None) -> int:
 
 
 def main(argv: list[str]) -> int:
-    logging.basicConfig(
-        stream=sys.stderr,
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
+    get_settings.cache_clear()
+    configure_logging(get_settings())
     try:
         args = _parser().parse_args(argv)
     except SystemExit as exc:

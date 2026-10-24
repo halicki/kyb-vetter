@@ -100,6 +100,15 @@ class Settings(BaseSettings):
     user_daily_limit_check: int = DEFAULT_USER_LIMIT_CHECK
     """``check_bank_account`` calls per user per day (APP_USER_DAILY_LIMIT_CHECK); 0 = unlimited."""
 
+    log_format: Literal["text", "json"] = "text"
+    """``json`` emits one Cloud Logging record per line (APP_LOG_FORMAT); ``text`` for terminals."""
+
+    trace_export: Literal["none", "gcp"] = "none"
+    """``gcp`` ships OpenTelemetry spans to Cloud Trace via OTLP (APP_TRACE_EXPORT)."""
+
+    gcp_project: str | None = None
+    """Google Cloud project id (APP_GCP_PROJECT): trace correlation in logs and the OTLP target."""
+
     @field_validator("mf_base_url", "krs_base_url")
     @classmethod
     def _strip_trailing_slash(cls, value: str) -> str:

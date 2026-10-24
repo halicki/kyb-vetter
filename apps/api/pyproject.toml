@@ -8,6 +8,7 @@ dependencies = [
     "fastapi>=0.162",
     "httpx>=0.28",
     "uvicorn>=0.54",
+    "opentelemetry-instrumentation-fastapi>=0.66b1",
 ]
 
 [build-system]

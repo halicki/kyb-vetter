@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from kyb_vetter_core.storage.ports import ApiKeyRecord, AuditEvent, BlobStore, CacheEntry, Stores
+from kyb_vetter_core.telemetry import instrument_engine
 
 
 class Base(DeclarativeBase):
@@ -270,6 +271,7 @@ def make_engine(url: str) -> AsyncEngine:
 async def open_postgres_stores(url: str, *, blobs: BlobStore) -> AsyncGenerator[Stores]:
 
     engine = make_engine(url)
+    instrument_engine(engine)
     sessions: SessionFactory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         yield Stores(

@@ -10,6 +10,7 @@ dependencies = [
     "pydantic>=2.14",
     "uvicorn>=0.54",
     "starlette>=0.50",
+    "opentelemetry-instrumentation-starlette>=0.66b1",
 ]
 
 [build-system]

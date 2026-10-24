@@ -24,5 +24,7 @@ variable "services" {
     "billingbudgets.googleapis.com",
     "storage.googleapis.com",
     "cloudscheduler.googleapis.com",
+    "cloudtrace.googleapis.com",
+    "telemetry.googleapis.com",
   ]
 }

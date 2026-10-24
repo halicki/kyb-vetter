@@ -4,6 +4,13 @@ resource "google_service_account" "runtime" {
   display_name = "Cloud Run runtime (MCP server, REST API, jobs)"
 }
 
+# Spans are shipped by the app over OTLP to telemetry.googleapis.com (ADR-0021).
+resource "google_project_iam_member" "runtime_traces" {
+  project = var.project_id
+  role    = "roles/telemetry.tracesWriter"
+  member  = "serviceAccount:${google_service_account.runtime.email}"
+}
+
 locals {
   # Two services from one image (ADR-0020): the MCP server (image CMD) and the REST API.
   services = {
@@ -29,6 +36,10 @@ locals {
       # cannot be allow-listed ahead of time, so the check stays off. The REST app ignores both.
       APP_HOST_CHECK          = svc.domain == "" ? "false" : "true"
       APP_EXTRA_ALLOWED_HOSTS = jsonencode([local.run_hosts[k]])
+      # Structured logs and OTLP traces to Cloud Trace (ADR-0021).
+      APP_LOG_FORMAT   = "json"
+      APP_TRACE_EXPORT = "gcp"
+      APP_GCP_PROJECT  = var.project_id
     }, var.extra_env)
   }
   invokers = var.public ? ["allUsers"] : var.invoker_members

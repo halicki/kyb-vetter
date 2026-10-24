@@ -8,6 +8,7 @@ local runs and switched off by ``APP_HOST_CHECK=false`` behind Cloud Run (ADR-00
 from typing import TYPE_CHECKING
 
 from mcp.server.transport_security import TransportSecuritySettings
+from opentelemetry.instrumentation.starlette import StarletteInstrumentor
 from starlette.responses import JSONResponse
 
 from kyb_vetter_mcp.auth import resource_metadata
@@ -63,7 +64,7 @@ def build_http_app(settings: Settings) -> Starlette:
         async def prm_root(_request: Request) -> JSONResponse:
             return JSONResponse(document, headers={"Cache-Control": "public, max-age=3600"})
 
-    return server.streamable_http_app(
+    app = server.streamable_http_app(
         streamable_http_path=MCP_PATH,
         json_response=True,
         stateless_http=True,
@@ -73,3 +74,5 @@ def build_http_app(settings: Settings) -> Starlette:
             allowed_origins=[],
         ),
     )
+    StarletteInstrumentor.instrument_app(app)  # request spans; a no-op without a tracer provider
+    return app
