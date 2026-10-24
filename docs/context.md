@@ -66,6 +66,15 @@ Days follow Europe/Warsaw. `verification_history` and cache hits cost nothing.
 - Connectors verified: Claude custom connector (CIMD). Gemini CLI, ChatGPT and Gemini Enterprise
   are documented but untested (`docs/connectors.md`).
 
+## Environments (from M8, 2026-10-24)
+
+- dev: GCP project `kyb-vetter-dev-*`, MF test host, Auth0 dev tenant (DCR on), hostnames
+  `mcp.dev.<zone>` / `api.dev.<zone>`, deploys on every push to `main`.
+- prod: own project, Neon, Auth0 tenant (CIMD only), real MF host, `mcp.<zone>` / `api.<zone>`,
+  deploys on `v*` tags; deletion protection on. ADR-0023.
+- Observability: JSON logs with identifier redaction, traces in Cloud Trace (ADR-0021);
+  retention 5 years from year end for audit rows, weekly purge job (ADR-0022).
+
 ## REST API (from M7, 2026-10-23)
 
 - Separate Cloud Run service `api.<zone>` from the same image (ADR-0020); resource-shaped

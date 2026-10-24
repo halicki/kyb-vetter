@@ -28,6 +28,7 @@ acceptance - supersede with a new ADR instead.
 | [0020](0020-rest-api.md) | REST API as a separate Cloud Run service | Accepted |
 | [0021](0021-observability.md) | Structured logs and OpenTelemetry traces | Accepted |
 | [0022](0022-retention.md) | Audit retention and housekeeping | Accepted |
+| [0023](0023-production-environment.md) | Production environment | Accepted |
 
 ## Pending decisions
 

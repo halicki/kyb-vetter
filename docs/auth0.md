@@ -71,7 +71,14 @@ A token obtained through the Inspector must be a JWT whose `aud` contains the AP
 echo "$TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq '{iss, aud, sub, azp, scope, exp}'
 ```
 
-## 7. Server side
+## 7. Production tenant (ADR-0023)
+
+Repeat steps 1–6 in a second tenant (`<project_name>-prod`, EU) with the prod hostnames
+(`https://mcp.<zone>/mcp`) and **leave Dynamic Client Registration off**: Claude and ChatGPT
+register through CIMD, Gemini Enterprise through a pre-registered application. The dev tenant
+keeps DCR on and its API identifier changes to the dev hostname (`https://mcp.dev.<zone>/mcp`).
+
+## 8. Server side
 
 Terraform `auth_issuer = "https://<tenant>.eu.auth0.com/"` and `public = true`
 (`infra/terraform/README.md`). The server fetches

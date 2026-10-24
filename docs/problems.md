@@ -41,6 +41,16 @@
 - `neondatabase/neon` provider: check the registry each milestone and switch the `source` when published.
 - RESOLVED 2026-10-23 (ADR-0018): host allow-listing was off on Cloud Run; M6 attaches a custom domain, turns the check on and allow-lists the deterministic `run.app` host via `APP_EXTRA_ALLOWED_HOSTS`.
 
+## Open since M8 (2026-10-24)
+
+- Trace sampling is the SDK default (parent-based, always on); set a ratio sampler before
+  traffic grows (ADR-0021). No metrics export yet.
+- Purged audit rows have no archive; Neon PITR on the free plan is hours. An export-before-purge
+  step is a candidate if a customer needs it (ADR-0022).
+- Prod is defined but applied by hand; until the first `v*` tag the prod services run the
+  `mcp:latest` image CI pushed from `main`.
+- The dev hostname move (`mcp.dev.<zone>`) invalidates the Claude connector added in M6; re-add it.
+
 ## Open since M7 (2026-10-23)
 
 - The REST API accepts Auth0 tokens issued for the MCP audience (`https://mcp.<zone>/mcp`); a
