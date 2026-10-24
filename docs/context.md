@@ -58,7 +58,7 @@ Days follow Europe/Warsaw. `verification_history` and cache hits cost nothing.
 
 - Identity provider: Auth0, tenant per environment in the EU region (ADR-0017). The MCP server
   is an OAuth resource server; the principal is the token's `sub` (e.g. `google-oauth2|123`).
-- Hostname: `mcp.<zone>` (dev: `mcp.kybvetter.dev`); the REST API (M7) goes under `api.<zone>`.
+- Hostnames: prod `mcp.kybvetter.dev` / `api.kybvetter.dev`, dev `mcp.dev.kybvetter.dev` / `api.dev.kybvetter.dev` (since 2026-10-24, ADR-0023).
   The zone is a working domain, not the brand (SPEC backlog).
 - `verification_history` is per principal: users never see each other's calls.
 - Per-user daily budgets (ADR-0019): 200 `verify_company`, 500 `check_bank_account`, cache hits

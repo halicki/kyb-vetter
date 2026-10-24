@@ -22,8 +22,9 @@ Either header works; both resolve to the same principal (the Auth0 `sub`), so RE
 of one person share history and daily limits.
 
 ```sh
-curl -H "X-API-Key: $KEY" https://api.kybvetter.dev/v1/companies/3245174504
-curl -H "Authorization: Bearer $AUTH0_ACCESS_TOKEN" https://api.kybvetter.dev/v1/companies/3245174504
+# dev: api.dev.kybvetter.dev (ministry sandbox, synthetic companies); prod: api.kybvetter.dev
+curl -H "X-API-Key: $KEY" https://api.dev.kybvetter.dev/v1/companies/3245174504
+curl -H "Authorization: Bearer $AUTH0_ACCESS_TOKEN" https://api.dev.kybvetter.dev/v1/companies/3245174504
 ```
 
 Keys are issued by an administrator (shown once, stored hashed):
