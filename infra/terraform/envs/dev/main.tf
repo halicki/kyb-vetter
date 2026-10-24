@@ -44,7 +44,9 @@ module "run" {
       APP_AUTH_AUDIENCE = "https://${var.domain == "" ? module.run.run_host : var.domain}/mcp"
     },
   )
-  public = var.public
+  public        = var.public
+  protect       = var.protect
+  max_instances = var.max_instances
   invoker_members = concat(
     var.invoker_members,
     ["serviceAccount:${var.project_name}-deployer@${local.project_id}.iam.gserviceaccount.com"],

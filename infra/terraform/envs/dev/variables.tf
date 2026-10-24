@@ -64,6 +64,15 @@ variable "krs_base_url" {
   type    = string
   default = "https://api-krs.ms.gov.pl"
 }
+variable "protect" {
+  type        = bool
+  description = "deletion_protection on Cloud Run services and jobs"
+  default     = false
+}
+variable "max_instances" {
+  type    = number
+  default = 2
+}
 variable "budget_amount" {
   type    = number
   default = 20

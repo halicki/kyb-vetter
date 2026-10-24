@@ -3,6 +3,7 @@ name: ci
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
 
 permissions:
@@ -58,101 +59,19 @@ jobs:
         run: uv run pytest
 
   deploy-dev:
-    # Image roll only: Terraform owns the service configuration (ADR-0015).
     needs: check
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    environment: dev
-    concurrency:
-      group: deploy-dev
-      cancel-in-progress: false
-    env:
-      IMAGE: ${{ vars.GCP_ARTIFACT_REPO }}/mcp
-    steps:
-      - uses: actions/checkout@v7
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: dev
+    secrets: inherit
 
-      - id: auth
-        uses: google-github-actions/auth@v3
-        with:
-          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
-          service_account: ${{ vars.GCP_DEPLOYER_SA }}
-          token_format: access_token
-
-      - uses: docker/login-action@v4
-        with:
-          registry: ${{ vars.GCP_REGION }}-docker.pkg.dev
-          username: oauth2accesstoken
-          password: ${{ steps.auth.outputs.access_token }}
-
-      - uses: docker/setup-buildx-action@v4
-
-      - uses: docker/build-push-action@v7
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ env.IMAGE }}:${{ github.sha }}
-            ${{ env.IMAGE }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - uses: google-github-actions/setup-gcloud@v3
-
-      - name: Run schema migrations
-        run: |
-          gcloud run jobs update "${{ vars.GCP_MIGRATE_JOB }}" \
-            --project "${{ vars.GCP_PROJECT_ID }}" --region "${{ vars.GCP_REGION }}" \
-            --image "${IMAGE}:${{ github.sha }}"
-          gcloud run jobs execute "${{ vars.GCP_MIGRATE_JOB }}" \
-            --project "${{ vars.GCP_PROJECT_ID }}" --region "${{ vars.GCP_REGION }}" --wait
-
-      - name: Roll the flat-file job image
-        run: |
-          gcloud run jobs update "${{ vars.GCP_FLATFILE_JOB }}" \
-            --project "${{ vars.GCP_PROJECT_ID }}" --region "${{ vars.GCP_REGION }}" \
-            --image "${IMAGE}:${{ github.sha }}"
-
-      - name: Roll the purge job image
-        if: vars.GCP_PURGE_JOB != ''
-        run: |
-          gcloud run jobs update "${{ vars.GCP_PURGE_JOB }}" \
-            --project "${{ vars.GCP_PROJECT_ID }}" --region "${{ vars.GCP_REGION }}" \
-            --image "${IMAGE}:${{ github.sha }}"
-
-      - id: deploy
-        uses: google-github-actions/deploy-cloudrun@v3
-        with:
-          project_id: ${{ vars.GCP_PROJECT_ID }}
-          region: ${{ vars.GCP_REGION }}
-          service: ${{ vars.GCP_SERVICE }}
-          image: ${{ env.IMAGE }}:${{ github.sha }}
-
-      - name: Smoke test
-        # /health is public; /mcp must challenge unauthenticated callers (ADR-0017). Before the
-        # service is opened (public = false in Terraform) both answer 403 from Cloud Run IAM, so
-        # the check is skipped unless MCP_PUBLIC is set to "true" in the environment variables.
-        if: vars.MCP_PUBLIC == 'true'
-        run: |
-          url="${{ steps.deploy.outputs.url }}"
-          curl -fsS "$url/health"
-          status=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$url/mcp" \
-            -H 'Content-Type: application/json' -d '{}')
-          test "$status" = "401" || { echo "expected 401 from /mcp, got $status"; exit 1; }
-
-      - id: deploy_api
-        name: Roll the REST API (ADR-0020)
-        if: vars.GCP_API_SERVICE != ''
-        uses: google-github-actions/deploy-cloudrun@v3
-        with:
-          project_id: ${{ vars.GCP_PROJECT_ID }}
-          region: ${{ vars.GCP_REGION }}
-          service: ${{ vars.GCP_API_SERVICE }}
-          image: ${{ env.IMAGE }}:${{ github.sha }}
-
-      - name: Smoke test the REST API
-        if: vars.GCP_API_SERVICE != '' && vars.MCP_PUBLIC == 'true'
-        run: |
-          url="${{ steps.deploy_api.outputs.url }}"
-          curl -fsS "$url/health"
-          status=$(curl -s -o /dev/null -w '%{http_code}' "$url/v1/companies/1234563218")
-          test "$status" = "401" || { echo "expected 401 from /v1, got $status"; exit 1; }
+  deploy-prod:
+    # Promotion is explicit: push a tag `vX.Y.Z` (the GitHub environment `prod` may require
+    # a reviewer). The tag is also built and tested by `check` first.
+    needs: check
+    if: startsWith(github.ref, 'refs/tags/v') && github.event_name == 'push'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: prod
+    secrets: inherit

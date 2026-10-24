@@ -1,0 +1,116 @@
+name: deploy
+
+# Reusable deploy: builds the image once per call, runs migrations, rolls every Cloud Run
+# service and job of one environment, then smoke-tests. Variables come from the GitHub
+# environment named by `environment` (GCP_PROJECT_ID, GCP_REGION, GCP_ARTIFACT_REPO,
+# GCP_WIF_PROVIDER, GCP_DEPLOYER_SA, GCP_SERVICE, GCP_MIGRATE_JOB, GCP_FLATFILE_JOB,
+# GCP_PURGE_JOB, GCP_API_SERVICE, MCP_PUBLIC). Terraform owns everything but the image (ADR-0015).
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    env:
+      IMAGE: ${{ vars.GCP_ARTIFACT_REPO }}/mcp
+    steps:
+      - uses: actions/checkout@v7
+
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+          token_format: access_token
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ${{ vars.GCP_REGION }}-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Run schema migrations
+        run: |
+          gcloud run jobs update "${{ vars.GCP_MIGRATE_JOB }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" --region "${{ vars.GCP_REGION }}" \
+            --image "${IMAGE}:${{ github.sha }}"
+          gcloud run jobs execute "${{ vars.GCP_MIGRATE_JOB }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" --region "${{ vars.GCP_REGION }}" --wait
+
+      - name: Roll the flat-file job image
+        run: |
+          gcloud run jobs update "${{ vars.GCP_FLATFILE_JOB }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" --region "${{ vars.GCP_REGION }}" \
+            --image "${IMAGE}:${{ github.sha }}"
+
+      - name: Roll the purge job image
+        if: vars.GCP_PURGE_JOB != ''
+        run: |
+          gcloud run jobs update "${{ vars.GCP_PURGE_JOB }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" --region "${{ vars.GCP_REGION }}" \
+            --image "${IMAGE}:${{ github.sha }}"
+
+      - id: deploy
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          region: ${{ vars.GCP_REGION }}
+          service: ${{ vars.GCP_SERVICE }}
+          image: ${{ env.IMAGE }}:${{ github.sha }}
+
+      - name: Smoke test
+        # /health is public; /mcp must challenge unauthenticated callers (ADR-0017). Before the
+        # service is opened (public = false in Terraform) both answer 403 from Cloud Run IAM, so
+        # the check is skipped unless MCP_PUBLIC is set to "true" in the environment variables.
+        if: vars.MCP_PUBLIC == 'true'
+        run: |
+          url="${{ steps.deploy.outputs.url }}"
+          curl -fsS "$url/health"
+          status=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$url/mcp" \
+            -H 'Content-Type: application/json' -d '{}')
+          test "$status" = "401" || { echo "expected 401 from /mcp, got $status"; exit 1; }
+
+      - id: deploy_api
+        name: Roll the REST API (ADR-0020)
+        if: vars.GCP_API_SERVICE != ''
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          region: ${{ vars.GCP_REGION }}
+          service: ${{ vars.GCP_API_SERVICE }}
+          image: ${{ env.IMAGE }}:${{ github.sha }}
+
+      - name: Smoke test the REST API
+        if: vars.GCP_API_SERVICE != '' && vars.MCP_PUBLIC == 'true'
+        run: |
+          url="${{ steps.deploy_api.outputs.url }}"
+          curl -fsS "$url/health"
+          status=$(curl -s -o /dev/null -w '%{http_code}' "$url/v1/companies/1234563218")
+          test "$status" = "401" || { echo "expected 401 from /v1, got $status"; exit 1; }

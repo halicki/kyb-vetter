@@ -66,7 +66,7 @@ resource "google_cloud_run_v2_service" "this" {
   name                = "${var.project_name}-${each.key}"
   location            = var.region
   ingress             = "INGRESS_TRAFFIC_ALL"
-  deletion_protection = false
+  deletion_protection = var.protect
 
   template {
     service_account                  = google_service_account.runtime.email
@@ -74,7 +74,7 @@ resource "google_cloud_run_v2_service" "this" {
     timeout                          = "60s"
     scaling {
       min_instance_count = 0
-      max_instance_count = 2
+      max_instance_count = var.max_instances
     }
     containers {
       image   = each.value.image
@@ -133,7 +133,7 @@ resource "google_cloud_run_v2_job" "migrate" {
   project             = var.project_id
   name                = "${var.project_name}-migrate"
   location            = var.region
-  deletion_protection = false
+  deletion_protection = var.protect
 
   template {
     template {

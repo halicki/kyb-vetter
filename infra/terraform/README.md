@@ -4,9 +4,10 @@ Everything in GCP is created from here; the database is Neon (ADR-0014). Resourc
 are prefixed with `var.project_name` (ADR-0004). Layout:
 
 ```text
-modules/      project, registry, github-wif, neon, secrets, run (service + migrate job), flatfile (bucket, job, scheduler), budget
-envs/dev/     main root: GCS backend (dev.backend.hcl)
-envs/dev/bootstrap/   project + state bucket, LOCAL state (git-ignored)
+modules/      project, registry, github-wif, neon, secrets, run (mcp + api services, migrate job), domain, flatfile (bucket, job, scheduler), purge (job, scheduler), budget
+envs/dev/     main root: GCS backend (dev.backend.hcl); dev defaults (MF test host, no protection)
+envs/prod/    same layout, prod defaults (real MF host, deletion protection, max 3 instances); ADR-0023
+envs/<env>/bootstrap/   project + state bucket, LOCAL state (git-ignored)
 ```
 
 ## One-time setup
@@ -89,12 +90,24 @@ resource-server mode: `APP_AUTH_ISSUER` and `APP_AUTH_AUDIENCE = https://<domain
 the service. Only then may `public = true` grant `allUsers` the invoker role (a validation rule
 refuses the combination without an issuer). Tenant setup is a checklist in `docs/auth0.md`.
 
+## Production (ADR-0023)
+
+Same steps as dev with `envs/prod`: bootstrap apply, `prod.backend.hcl` from the bootstrap
+output (copy `prod.example.backend.hcl`), `terraform.tfvars` from `prod.example.tfvars`, then
+`init -backend-config=prod.backend.hcl` and `apply`. Prod takes the bare hostnames (`mcp.<zone>`,
+`api.<zone>`); move dev to `mcp.dev.<zone>` / `api.dev.<zone>` first (dev tfvars, dev Auth0 API
+identifier, Claude connector URL). The Auth0 prod tenant keeps DCR off. Create the GitHub
+environment `prod` with the same variables as the table above, taken from the prod outputs;
+a deploy to prod runs when a `v*` tag is pushed (`git tag v1.0.0 && git push origin v1.0.0`).
+
 ## Who deploys what
 
 - Terraform (run locally by the owner): project, APIs, registry, WIF, Neon project, secrets,
   Cloud Run service and job configuration, IAM, budget.
-- GitHub Actions (keyless, WIF): builds the image, pushes it to Artifact Registry, runs the
-  `migrate` job, rolls the new image onto the service. Terraform ignores image changes.
+- GitHub Actions (keyless, WIF; `.github/workflows/deploy.yml`, called per environment): builds
+  the image, pushes it to Artifact Registry, runs the `migrate` job, rolls the new image onto the
+  services and jobs, smoke-tests. `main` → dev on every push; `v*` tags → prod. Terraform ignores
+  image changes.
 
 ## Calling the dev service
 

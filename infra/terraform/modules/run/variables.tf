@@ -25,6 +25,15 @@ variable "bootstrap_image" {
 variable "database_url_secret_id" { type = string }
 variable "database_url_direct_secret_id" { type = string }
 variable "invoker_members" { type = list(string) }
+variable "protect" {
+  type        = bool
+  description = "deletion_protection on the services and the migrate job (true in prod)"
+  default     = false
+}
+variable "max_instances" {
+  type    = number
+  default = 2
+}
 variable "public" {
   type        = bool
   description = "allUsers may invoke the service (auth is enforced by the app)"
