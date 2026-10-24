@@ -33,6 +33,7 @@ from kyb_vetter_core.flatfile.provider import FlatFileProvider
 from kyb_vetter_core.models import WARSAW
 from kyb_vetter_core.principals import Authenticator
 from kyb_vetter_core.storage import open_stores
+from kyb_vetter_core.telemetry import current_provider
 
 # FastAPI resolves these annotations at runtime (response models, dependencies): keep them eager.
 from kyb_vetter_core.verification import (
@@ -292,5 +293,6 @@ def build_app(settings: Settings) -> FastAPI:
         except InvalidIdentifierError as exc:
             raise core_problem(exc) from exc
 
-    FastAPIInstrumentor.instrument_app(app)  # request spans; a no-op without a tracer provider
+    # Request spans; with no provider installed this is a no-op.
+    FastAPIInstrumentor.instrument_app(app, tracer_provider=current_provider())
     return app

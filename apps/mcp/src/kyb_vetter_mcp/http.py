@@ -11,6 +11,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 from opentelemetry.instrumentation.starlette import StarletteInstrumentor
 from starlette.responses import JSONResponse
 
+from kyb_vetter_core.telemetry import current_provider
 from kyb_vetter_mcp.auth import resource_metadata
 from kyb_vetter_mcp.server import build_server
 
@@ -74,5 +75,6 @@ def build_http_app(settings: Settings) -> Starlette:
             allowed_origins=[],
         ),
     )
-    StarletteInstrumentor.instrument_app(app)  # request spans; a no-op without a tracer provider
+    # Request spans; with no provider installed this is a no-op.
+    StarletteInstrumentor.instrument_app(app, tracer_provider=current_provider())
     return app

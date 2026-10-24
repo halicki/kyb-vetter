@@ -182,3 +182,17 @@ def test_in_memory_processor_helper_is_not_needed_by_production_code() -> None:
         SimpleSpanProcessor
     )  # imported for symmetry with the SDK docs; keeps the import list honest
     assert trace.get_tracer_provider() is not None
+
+
+def test_current_provider_follows_configure_and_shutdown(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(telemetry, "_gcp_exporter", lambda _settings: InMemorySpanExporter())
+    assert telemetry.current_provider() is None
+    first = configure_tracing(Settings(trace_export="gcp", project_name="x"), role="a")
+    assert first is not None
+    assert telemetry.current_provider() is first
+    second = configure_tracing(Settings(trace_export="gcp", project_name="x"), role="b")
+    assert second is not None
+    telemetry.shutdown_tracing(first)  # stale provider: the current one stays
+    assert telemetry.current_provider() is second
+    telemetry.shutdown_tracing(second)
+    assert telemetry.current_provider() is None

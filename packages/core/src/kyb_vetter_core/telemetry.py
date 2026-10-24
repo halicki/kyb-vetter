@@ -127,6 +127,17 @@ def _exporter_factory() -> SpanExporter:  # pragma: no cover - needs Google cred
 
 
 _EXPORTER_FACTORY: Callable[[], SpanExporter] = _exporter_factory
+_provider: TracerProvider | None = None
+
+
+def current_provider() -> TracerProvider | None:
+    """The provider installed by :func:`configure_tracing`, for app instrumentation.
+
+    The OpenTelemetry global provider can be set only once per process, so app
+    factories take the provider from here instead of the global (tests build
+    several providers in one process).
+    """
+    return _provider
 
 
 def _gcp_exporter(_settings: Settings) -> SpanExporter:
@@ -151,13 +162,18 @@ def configure_tracing(settings: Settings, *, role: str) -> TracerProvider | None
     # Cloud Run forwards `traceparent` with the sampled flag off; the default parent-based sampler
     # would then drop every span. Sample everything (traffic is small) but keep the parent's trace
     # id so request logs and spans correlate; switch to a ratio sampler when volume grows.
+    global _provider
     provider = TracerProvider(resource=Resource.create(attributes), sampler=ALWAYS_ON)
     provider.add_span_processor(BatchSpanProcessor(exporter))
     trace.set_tracer_provider(provider)
     HTTPXClientInstrumentor().instrument(tracer_provider=provider)
+    _provider = provider
     return provider
 
 
 def shutdown_tracing(provider: TracerProvider) -> None:
+    global _provider
     HTTPXClientInstrumentor().uninstrument()
     provider.shutdown()
+    if _provider is provider:
+        _provider = None
