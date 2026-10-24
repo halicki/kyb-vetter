@@ -11,8 +11,9 @@ same reason.
 Tracing: an SDK tracer provider is installed only when ``trace_export`` asks
 for it; spans go to Cloud Trace through OTLP/gRPC on ``telemetry.googleapis.com``
 with the runtime service account's credentials (the project is the
-``gcp.project_id`` resource attribute). Instrumentation of ``httpx`` and
-SQLAlchemy is global; ASGI apps are instrumented by their adapters. With no
+``gcp.project_id`` resource attribute). ``httpx`` is instrumented globally;
+ASGI apps are instrumented by their adapters. Database spans wait for an
+instrumentor that supports SQLAlchemy 2.1 (see problems.md). With no
 provider, every instrumented call is a no-op.
 """
 
@@ -26,14 +27,11 @@ lazy from collections.abc import Callable
 
 from opentelemetry import trace
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
-from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncEngine
-
     from kyb_vetter_core.config import Settings
 
 logger = logging.getLogger(__name__)
@@ -158,8 +156,3 @@ def configure_tracing(settings: Settings, *, role: str) -> TracerProvider | None
 def shutdown_tracing(provider: TracerProvider) -> None:
     HTTPXClientInstrumentor().uninstrument()
     provider.shutdown()
-
-
-def instrument_engine(engine: AsyncEngine) -> None:
-    """Database spans for one engine; a no-op without a provider."""
-    SQLAlchemyInstrumentor().instrument(engine=engine.sync_engine)

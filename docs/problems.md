@@ -43,6 +43,10 @@
 
 ## Open since M8 (2026-10-24)
 
+- No database spans: `opentelemetry-instrumentation-sqlalchemy` 0.66b1 supports SQLAlchemy
+  `< 2.1.0` and we run 2.1.6. Re-add the instrumentation (and `instrument_engine` in
+  `storage/postgres.py`) when a release lifts the bound; `skip_dep_check` was not used on purpose.
+
 - Trace sampling is the SDK default (parent-based, always on); set a ratio sampler before
   traffic grows (ADR-0021). No metrics export yet.
 - Purged audit rows have no archive; Neon PITR on the free plan is hours. An export-before-purge

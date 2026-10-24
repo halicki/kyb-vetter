@@ -49,3 +49,7 @@ parsed into a structured, trace-correlated entry.
   attributes only when non-sensitive.
 - Metrics are not exported yet; Cloud Run's built-in request metrics suffice
   for M8.
+- Addendum (2026-10-24, first deploy): `opentelemetry-instrumentation-sqlalchemy`
+  0.66b1 refuses SQLAlchemy 2.1 (`< 2.1.0`), so database spans are not
+  collected; the dependency was removed and the item is tracked in
+  problems.md. httpx and ASGI spans are unaffected.

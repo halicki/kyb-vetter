@@ -207,7 +207,7 @@ depends_on = []  # ports imported under TYPE_CHECKING only
 
 [[tool.tach.modules]]
 path = "kyb_vetter_core.storage.postgres"
-depends_on = ["kyb_vetter_core.storage.ports", "kyb_vetter_core.telemetry"]
+depends_on = ["kyb_vetter_core.storage.ports"]
 
 [[tool.tach.modules]]
 path = "kyb_vetter_core.retention"
