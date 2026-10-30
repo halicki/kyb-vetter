@@ -20,6 +20,8 @@
   extension, DPoP and `jwt-bearer` remain unimplemented in the SDK.
 
 ## Closed
+- (2026-10-30) Prod promoted by tag `v1.0.0` (run `deploy-prod` green); services and jobs run
+  the tagged image. The dev Claude connector was re-added on `mcp.dev.<zone>`.
 - (2026-10-22) Python 3.15 wheel availability: all compiled dependencies ship
   `cp315` wheels. See ADR-0002.
 
@@ -51,11 +53,8 @@
   traffic grows (ADR-0021). No metrics export yet.
 - Purged audit rows have no archive; Neon PITR on the free plan is hours. An export-before-purge
   step is a candidate if a customer needs it (ADR-0022).
-- Prod is defined but applied by hand; until the first `v*` tag the prod services run the
-  `mcp:latest` image CI pushed from `main`.
 - Prod shares the dev Auth0 tenant (ADR-0024): shared user directory, settings and one-day
   logs. Split into its own tenant at the first paying customer or when a Free-plan limit bites.
-- The dev hostname move (`mcp.dev.<zone>`) invalidates the Claude connector added in M6; re-add it.
 
 ## Open since M7 (2026-10-23)
 
