@@ -37,7 +37,7 @@ Stable codes returned in `warnings[].code`; messages are free text for humans.
 |------|---------|
 | `NOT_IN_WHITELIST` | NIP unknown to the VAT white list |
 | `VAT_NOT_ACTIVE` | VAT status is `exempt` or `not_registered` |
-| `VAT_REMOVED` | Entry has a removal date |
+| `VAT_REMOVED` | Entry has a removal date later than any registration or restoration date (a removal superseded by re-registration is not flagged, since 2026-10-30) |
 | `VAT_STATUS_UNAVAILABLE` | WL2 status endpoint failed during `check_bank_account` |
 | `KRS_NOT_FOUND` | White list names a KRS number the register does not know (P and S) |
 | `KRS_UNAVAILABLE` | KRS API failed; VAT data returned alone |

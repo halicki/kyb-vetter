@@ -586,7 +586,7 @@ def _vat_warnings(subject: VatSubject) -> list[VerificationWarning]:
     warnings: list[VerificationWarning] = []
     if subject.status is not VatStatus.ACTIVE:
         warnings.append(_not_active_warning(subject.status))
-    if subject.removal_date is not None:
+    if _removal_is_latest(subject):
         warnings.append(
             VerificationWarning(
                 code=WARN_VAT_REMOVED,
@@ -594,3 +594,12 @@ def _vat_warnings(subject: VatSubject) -> list[VerificationWarning]:
             )
         )
     return warnings
+
+
+def _removal_is_latest(subject: VatSubject) -> bool:
+    """A removal counts only while no registration or restoration is as recent."""
+    removed = subject.removal_date
+    if removed is None:
+        return False
+    later = (subject.registration_legal_date, subject.restoration_date)
+    return all(d is None or d < removed for d in later)

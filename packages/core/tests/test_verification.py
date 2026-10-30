@@ -204,12 +204,18 @@ async def test_verify_company_not_in_whitelist(
     assert "white list" in result.skipped[1].reason
 
 
+# The fixture's registrationLegalDate is 2019-09-01. A removal is only a warning while it is
+# the latest event: a later registration or restoration supersedes it.
 @pytest.mark.parametrize(
-    ("status_vat", "removal_date", "expected"),
+    ("status_vat", "removal_date", "restoration_date", "expected"),
     [
-        ("Zwolniony", None, [WARN_VAT_NOT_ACTIVE]),
-        ("Niezarejestrowany", None, [WARN_VAT_NOT_ACTIVE]),
-        ("Niezarejestrowany", "2024-03-01", [WARN_VAT_NOT_ACTIVE, WARN_VAT_REMOVED]),
+        ("Zwolniony", None, None, [WARN_VAT_NOT_ACTIVE]),
+        ("Niezarejestrowany", None, None, [WARN_VAT_NOT_ACTIVE]),
+        ("Niezarejestrowany", "2024-03-01", None, [WARN_VAT_NOT_ACTIVE, WARN_VAT_REMOVED]),
+        ("Czynny", "2024-03-01", None, [WARN_VAT_REMOVED]),
+        ("Czynny", "2017-10-18", None, []),
+        ("Czynny", "2024-03-01", "2024-06-01", []),
+        ("Czynny", "2024-03-01", "2024-03-01", []),
     ],
 )
 async def test_verify_company_flags_inactive_and_removed_vat(
@@ -219,10 +225,12 @@ async def test_verify_company_flags_inactive_and_removed_vat(
     krs_orlen: Any,
     status_vat: str,
     removal_date: str | None,
+    restoration_date: str | None,
     expected: list[str],
 ) -> None:
     wl_found["result"]["subject"]["statusVat"] = status_vat
     wl_found["result"]["subject"]["removalDate"] = removal_date
+    wl_found["result"]["subject"]["restorationDate"] = restoration_date
     _mock_wl_search(mock_api, wl_found)
     _mock_krs(mock_api, "P", krs_orlen)
 
