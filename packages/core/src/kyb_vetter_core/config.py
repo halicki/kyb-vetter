@@ -18,6 +18,7 @@ from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_PROJECT_NAME = "kyb-vetter"
+DEFAULT_PRODUCT_NAME = "KYB Vetter"
 """Working project name. Placeholder until the brand is decided."""
 
 DEFAULT_DOMAIN = "localhost"
@@ -53,6 +54,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="APP_", frozen=True, extra="ignore")
 
     project_name: str = DEFAULT_PROJECT_NAME
+    product_name: str = DEFAULT_PRODUCT_NAME
+    """Display name shown to users (MCP server identity, OpenAPI title); the slug stays for
+    resources and the user agent."""
     """Product / project name used in user-facing strings and resource names."""
 
     domain: str = DEFAULT_DOMAIN

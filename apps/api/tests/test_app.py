@@ -28,7 +28,7 @@ async def test_health_is_public(settings: Settings) -> None:
 async def test_openapi_lists_the_v1_routes_and_api_key_security(settings: Settings) -> None:
     async with serve(settings) as (http, _):
         spec = (await http.get("/openapi.json")).json()
-    assert spec["info"]["title"] == "unit-test-api"
+    assert spec["info"]["title"] == "Unit Test API"
     assert set(spec["paths"]) >= {
         "/v1/companies/{nip}",
         "/v1/companies/{nip}/bank-accounts/{account}",

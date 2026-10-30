@@ -6,7 +6,7 @@ Kod, docstringi, commity, README i ADR-y po angielsku. Ze mną rozmawiaj po pols
 
 ## Nazwa
 
-- Robocza nazwa projektu i repo: `kyb-vetter` (pakiety Pythona: `kyb_vetter_*`). Marka produktu NIE jest jeszcze ustalona.
+- Robocza nazwa projektu i repo: `kyb-vetter` (pakiety Pythona: `kyb_vetter_*`). Marka robocza widoczna dla użytkowników (connector w Claude, tytuł OpenAPI): **KYB Vetter** (`Settings.product_name`, 2026-10-30); docelowa marka nadal otwarta.
 - Nazwa musi żyć w JEDNYM miejscu na warstwę: zmienna `project_name` w Terraformie (prefiks wszystkich zasobów GCP), jedna stała/konfiguracja w kodzie, nazwa w `pyproject.toml`. Nigdzie nie hardkoduj "kyb-vetter" w stringach, URL-ach ani nazwach zasobów — rebranding ma być zmianą kilku linijek.
 - Domena i nazwa connectora pochodzą z konfiguracji (zmienna `domain`), nie z kodu.
 

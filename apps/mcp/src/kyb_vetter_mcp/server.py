@@ -81,7 +81,8 @@ def build_server(
             yield state
 
     server: MCPServer[AppState] = MCPServer(
-        name=settings.project_name,
+        name=settings.product_name,
+        title=settings.product_name,
         instructions=INSTRUCTIONS,
         lifespan=lifespan,
         token_verifier=verifier,

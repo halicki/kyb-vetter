@@ -211,7 +211,7 @@ def build_app(settings: Settings) -> FastAPI:
             yield
 
     app = FastAPI(
-        title=settings.project_name,
+        title=settings.product_name,
         version="1",
         summary="Verify Polish companies against public registers (VAT white list, KRS).",
         lifespan=lifespan,

@@ -21,7 +21,8 @@ from .conftest import KRS, MF, NIP, NRB, ORLEN_KRS, ClientFactory
 async def test_server_identity_comes_from_settings(mcp_client: ClientFactory) -> None:
     async with mcp_client() as client:
         assert client.server_info is not None
-        assert client.server_info.name == "unit-test-connector"
+        assert client.server_info.name == "Unit Test Connector"
+        assert client.server_info.title == "Unit Test Connector"
 
 
 async def test_tools_are_listed_read_only_with_output_schema(mcp_client: ClientFactory) -> None:

@@ -14,6 +14,12 @@ from the code. Keep entries short; date them.
 - Also the owner's learning project for MCP, Terraform and GCP: engineering
   quality and understood decisions matter more than speed.
 
+## Naming (2026-10-30)
+
+- Display name `KYB Vetter` (`Settings.product_name`, env `APP_PRODUCT_NAME`): MCP server
+  identity and OpenAPI title. The slug `kyb-vetter` (`project_name`) stays for resources,
+  `/health`, the user agent and Auth0 API names. A final brand is still open.
+
 ## Domain constraints (2026-10-22)
 
 - MF VAT white list (host `wykazpodatnikowvat.mf.gov.pl` since 2026-10-15):

@@ -31,7 +31,12 @@ def fixture_json() -> Callable[[str], Any]:
 
 @pytest.fixture
 def settings() -> Settings:
-    return Settings(mf_base_url=MF, krs_base_url=KRS, project_name="unit-test-connector")
+    return Settings(
+        mf_base_url=MF,
+        krs_base_url=KRS,
+        project_name="unit-test-connector",
+        product_name="Unit Test Connector",
+    )
 
 
 @pytest.fixture
