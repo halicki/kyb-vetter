@@ -53,6 +53,8 @@
   step is a candidate if a customer needs it (ADR-0022).
 - Prod is defined but applied by hand; until the first `v*` tag the prod services run the
   `mcp:latest` image CI pushed from `main`.
+- Prod shares the dev Auth0 tenant (ADR-0024): shared user directory, settings and one-day
+  logs. Split into its own tenant at the first paying customer or when a Free-plan limit bites.
 - The dev hostname move (`mcp.dev.<zone>`) invalidates the Claude connector added in M6; re-add it.
 
 ## Open since M7 (2026-10-23)

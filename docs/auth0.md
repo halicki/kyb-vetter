@@ -71,12 +71,17 @@ A token obtained through the Inspector must be a JWT whose `aud` contains the AP
 echo "$TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq '{iss, aud, sub, azp, scope, exp}'
 ```
 
-## 7. Production tenant (ADR-0023)
+## 7. Production (ADR-0023, ADR-0024)
 
-Repeat steps 1–6 in a second tenant (`<project_name>-prod`, EU) with the prod hostnames
-(`https://mcp.<zone>/mcp`) and **leave Dynamic Client Registration off**: Claude and ChatGPT
+Until the first paying customer, dev and prod share the one Free-plan tenant: add a second API
+(step 2) with the prod identifier `https://mcp.<zone>/mcp` next to the dev one
+(`https://mcp.dev.<zone>/mcp`), set **Default Audience** to the prod identifier and the
+environment tag to **Production**. Prod Terraform uses the same `auth_issuer` as dev.
+
+After the trigger named in ADR-0024, repeat steps 1–6 in a second tenant (`<project_name>-prod`,
+EU) with the prod identifier and **leave Dynamic Client Registration off**: Claude and ChatGPT
 register through CIMD, Gemini Enterprise through a pre-registered application. The dev tenant
-keeps DCR on and its API identifier changes to the dev hostname (`https://mcp.dev.<zone>/mcp`).
+keeps DCR on.
 
 ## 8. Server side
 

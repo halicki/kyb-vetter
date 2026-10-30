@@ -1,6 +1,6 @@
 # ADR-0023: Production environment
 
-Status: Accepted (2026-10-24)
+Status: Accepted (2026-10-24); the separate Auth0 tenant is deferred by ADR-0024
 
 ## Context
 
