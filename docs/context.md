@@ -19,6 +19,10 @@ from the code. Keep entries short; date them.
 - Display name `KYB Vetter` (`Settings.product_name`, env `APP_PRODUCT_NAME`): MCP server
   identity and OpenAPI title. The slug `kyb-vetter` (`project_name`) stays for resources,
   `/health`, the user agent and Auth0 API names. A final brand is still open.
+- Public website `https://kybvetter.dev` (GitHub Pages from `site/`, workflow `pages.yml`,
+  apex DNS in `modules/site`): documentation and privacy policy for the Claude connector
+  directory listing (`docs/directory-listing.md`). The MCP server advertises it as
+  `website_url` (`APP_WEBSITE_URL`). Support address `support@kybvetter.dev` (to be created).
 
 ## Domain constraints (2026-10-22)
 

@@ -36,6 +36,7 @@ def settings() -> Settings:
         krs_base_url=KRS,
         project_name="unit-test-connector",
         product_name="Unit Test Connector",
+        website_url="https://unit.test",
     )
 
 

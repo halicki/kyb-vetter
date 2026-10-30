@@ -28,6 +28,11 @@ variable "api_domain" {
   description = "Public hostname of the REST API (e.g. api.example.dev); empty means the run.app URL only (ADR-0020)."
   default     = ""
 }
+variable "site_domain" {
+  type        = string
+  description = "Zone apex for the public website on GitHub Pages (docs, privacy policy); empty skips the DNS records."
+  default     = ""
+}
 variable "cloudflare_zone_id" {
   type        = string
   description = "Cloudflare zone holding `domain`; with `domain` set, creates the domain mapping and DNS record (ADR-0018)."

@@ -83,6 +83,7 @@ def build_server(
     server: MCPServer[AppState] = MCPServer(
         name=settings.product_name,
         title=settings.product_name,
+        website_url=settings.website_url,
         instructions=INSTRUCTIONS,
         lifespan=lifespan,
         token_verifier=verifier,

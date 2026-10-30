@@ -23,6 +23,7 @@ async def test_server_identity_comes_from_settings(mcp_client: ClientFactory) ->
         assert client.server_info is not None
         assert client.server_info.name == "Unit Test Connector"
         assert client.server_info.title == "Unit Test Connector"
+        assert client.server_info.website_url == "https://unit.test"
 
 
 async def test_tools_are_listed_read_only_with_output_schema(mcp_client: ClientFactory) -> None:

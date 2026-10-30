@@ -43,6 +43,7 @@ module "run" {
       APP_AUTH_ISSUER   = var.auth_issuer
       APP_AUTH_AUDIENCE = "https://${var.domain == "" ? module.run.run_host : var.domain}/mcp"
     },
+    var.site_domain == "" ? {} : { APP_WEBSITE_URL = "https://${var.site_domain}" },
   )
   public        = var.public
   protect       = var.protect
@@ -73,6 +74,15 @@ module "domain" {
   service_name       = module.run.service_name
   hostname           = var.domain
   cloudflare_zone_id = var.cloudflare_zone_id
+}
+
+# Public website on GitHub Pages at the zone apex (docs, privacy policy for the directory listing).
+module "site" {
+  count              = var.site_domain != "" && var.cloudflare_zone_id != "" ? 1 : 0
+  source             = "../../modules/site"
+  hostname           = var.site_domain
+  cloudflare_zone_id = var.cloudflare_zone_id
+  github_owner       = split("/", var.github_repo)[0]
 }
 
 # The runtime SA is created in module.run; secrets need its email, run needs the secret ids:

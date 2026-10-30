@@ -57,6 +57,9 @@ class Settings(BaseSettings):
     product_name: str = DEFAULT_PRODUCT_NAME
     """Display name shown to users (MCP server identity, OpenAPI title); the slug stays for
     resources and the user agent."""
+
+    website_url: str | None = None
+    """Public website (documentation, privacy policy) advertised in the MCP server identity."""
     """Product / project name used in user-facing strings and resource names."""
 
     domain: str = DEFAULT_DOMAIN

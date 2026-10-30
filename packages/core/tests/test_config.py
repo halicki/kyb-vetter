@@ -24,6 +24,7 @@ def test_defaults_without_environment(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert settings.project_name == DEFAULT_PROJECT_NAME
     assert settings.product_name == DEFAULT_PRODUCT_NAME
+    assert settings.website_url is None
     assert DEFAULT_PRODUCT_NAME != DEFAULT_PROJECT_NAME
     assert settings.domain == DEFAULT_DOMAIN
     assert settings.public_base_url == "http://localhost"
@@ -32,12 +33,14 @@ def test_defaults_without_environment(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_environment_overrides(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("APP_PROJECT_NAME", "acme-verify")
     monkeypatch.setenv("APP_PRODUCT_NAME", "Acme Verify")
+    monkeypatch.setenv("APP_WEBSITE_URL", "https://acme.example")
     monkeypatch.setenv("APP_DOMAIN", "mcp.acme.example")
 
     settings = Settings()
 
     assert settings.project_name == "acme-verify"
     assert settings.product_name == "Acme Verify"
+    assert settings.website_url == "https://acme.example"
     assert settings.domain == "mcp.acme.example"
     assert settings.public_base_url == "https://mcp.acme.example"
 
