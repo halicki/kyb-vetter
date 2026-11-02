@@ -55,6 +55,11 @@
   step is a candidate if a customer needs it (ADR-0022).
 - Prod shares the dev Auth0 tenant (ADR-0024): shared user directory, settings and one-day
   logs. Split into its own tenant at the first paying customer or when a Free-plan limit bites.
+- (2026-11-02) `support@kybvetter.dev` is a Cloudflare Email Routing alias created in the
+  dashboard; its MX, SPF and DKIM records in the zone are outside Terraform (like the Search
+  Console TXT). Candidate: `cloudflare_email_routing_settings/dns/rule` in `modules/site` once
+  the Cloudflare token gets Zone Settings Write and Email Routing Rules Write; the destination
+  address stays a manual, verified-by-e-mail step either way.
 
 ## Open since M7 (2026-10-23)
 

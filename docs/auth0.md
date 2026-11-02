@@ -88,3 +88,19 @@ keeps DCR on.
 Terraform `auth_issuer = "https://<tenant>.eu.auth0.com/"` and `public = true`
 (`infra/terraform/README.md`). The server fetches
 `https://<tenant>.eu.auth0.com/.well-known/jwks.json` and caches the keys for 10 minutes.
+
+## 9. Reviewer test account (directory listing)
+
+The Claude directory review needs credentials for a fully populated account
+(`docs/directory-listing.md`). Use a database user, not a social login:
+
+- Authentication → Database: the `Username-Password-Authentication` connection must exist,
+  be enabled for third-party applications / promoted to domain level (step 4), and have
+  **Requires Email Verification** off (the reviewer address has no mailbox). Disable sign-ups
+  if the connection is only for this purpose.
+- User Management → Users → Create User: connection `Username-Password-Authentication`,
+  e-mail `reviewer@kybvetter.dev`, a generated password. Do not send the verification e-mail.
+  Store the password only in the portal's test-credentials field.
+- Sign in as that user in Claude through the connector and run each tool once, so
+  `verification_history` has rows. The per-user daily budget (ADR-0019) is enough for review.
+- Remove or block the user when the listing is live and the review is over.

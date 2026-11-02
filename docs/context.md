@@ -22,7 +22,11 @@ from the code. Keep entries short; date them.
 - Public website `https://kybvetter.dev` (GitHub Pages from `site/`, workflow `pages.yml`,
   apex DNS in `modules/site`): documentation and privacy policy for the Claude connector
   directory listing (`docs/directory-listing.md`). The MCP server advertises it as
-  `website_url` (`APP_WEBSITE_URL`). Support address `support@kybvetter.dev` (to be created).
+  `website_url` (`APP_WEBSITE_URL`). Support address `support@kybvetter.dev`, forwarded by
+  Cloudflare Email Routing (set up in the dashboard, 2026-11-02).
+- Operator (2026-11-02): AHA SOFTWARE Arkadiusz Halicki, ul. Stefana Żeromskiego 17/57,
+  01-882 Warszawa; named in `site/privacy.md` and the directory listing. Connector icon:
+  `site/icon.svg` (source) and `site/icon.png` (512×512), served at `/icon.png`.
 
 ## Domain constraints (2026-10-22)
 

@@ -5,11 +5,12 @@ title: Privacy policy
 
 # Privacy policy
 
-*Last updated: 2026-10-31. Draft pending the operator's legal review.*
+*Last updated: 2026-11-02.*
 
 ## Who we are
 
-KYB Vetter is operated by **[OPERATOR LEGAL NAME, ADDRESS]** ("we"). Contact:
+KYB Vetter is operated by **AHA SOFTWARE Arkadiusz Halicki, ul. Stefana Żeromskiego 17/57,
+01-882 Warszawa, Poland** ("we"). Contact:
 [support@kybvetter.dev](mailto:support@kybvetter.dev). We are the data controller for the
 account and usage data described below.
 
@@ -52,7 +53,8 @@ Usage counters are deleted after the day they concern. Logs expire after 30 days
 ## Where the data lives
 
 Google Cloud (region `europe-west1`, Belgium) runs the service; Neon (Frankfurt, Germany)
-hosts the database; Auth0 (EU region) handles sign-in; Cloudflare provides DNS only. The
+hosts the database; Auth0 (EU region) handles sign-in; Cloudflare provides DNS and forwards
+e-mail sent to `support@kybvetter.dev` to our mailbox (Email Routing). The
 public registers we query are operated by the Polish Ministry of Finance, the Ministry of
 Justice and the Ministry of Development and Technology; they receive the identifiers you look up.
 
