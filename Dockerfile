@@ -2,7 +2,7 @@
 # One image for the MCP server (default CMD), the REST API (`python -m kyb_vetter_api`) and the
 # worker jobs (`python -m kyb_vetter_worker ...`).
 # Base images are pinned by multi-arch index digest; Dependabot (.github/dependabot.yml) bumps them.
-FROM ghcr.io/astral-sh/uv:python3.15-trixie-slim@sha256:60a1cfdc8945ea9d12c8fe6221bfa256b2d94df43a93cc957a503346de9ca53b AS builder
+FROM ghcr.io/astral-sh/uv:python3.15-trixie-slim@sha256:1017e944d8b320412287a572b8221cda45742348d0feb99e500f1f4c4b019206 AS builder
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=0 UV_NO_DEV=1
 # py7zr's codecs (pybcj, pyppmd, inflate64) ship no cp315 wheels yet: build them here, not at runtime.
 RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev && rm -rf /var/lib/apt/lists/*
