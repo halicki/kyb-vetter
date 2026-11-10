@@ -44,4 +44,5 @@ def build_verification_service(
         persistent=stores.persistent,
         flatfile=flatfile if flatfile is not None else FlatFileProvider(stores.blobs),
         limiter=UserLimiter(stores.quota, limits=UserLimits.from_settings(settings), today=today),
+        today=today,
     )

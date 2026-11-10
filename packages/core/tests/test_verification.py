@@ -60,6 +60,7 @@ async def service(
             KrsClient(http, settings),
             audit=AuditRecorder(audit_store),
             persistent=False,
+            today=lambda: TODAY,
         )
 
 
@@ -434,6 +435,7 @@ async def test_verify_company_marks_official_host_as_production(
             KrsClient(http, settings),
             audit=AuditRecorder(MemoryAuditStore()),
             persistent=False,
+            today=lambda: TODAY,
         )
         result = await service.verify_company(NIP)
 
@@ -572,6 +574,7 @@ async def limited_service(
             KrsClient(http, settings),
             audit=AuditRecorder(audit_store),
             persistent=False,
+            today=lambda: TODAY,
             limiter=limiter,
         )
 
@@ -679,6 +682,7 @@ async def ff_service(
             audit=AuditRecorder(audit_store),
             persistent=False,
             flatfile=_StaticProvider(index),
+            today=lambda: TODAY,
         )
 
 
@@ -739,6 +743,34 @@ async def test_flat_file_miss_falls_back_to_api_with_a_note(
     assert [w.code for w in result.warnings] == [WARN_FLAT_FILE_MISS]
 
 
+async def test_an_index_that_is_not_todays_degrades_to_the_api(
+    audit_store: MemoryAuditStore, mock_api: respx.MockRouter, fixture_json: Callable[[str], Any]
+) -> None:
+    """Yesterday's file must not confirm a pair for today (ADR-0016): the live API answers."""
+    settings = Settings(mf_base_url=MF, krs_base_url=KRS, project_name="unit-test")
+    check = mock_api.get(f"{MF}/api/check/nip/{NIP}/bank-account/{NRB}").respond(
+        200, json=fixture_json("whitelist/check_nie")
+    )
+    mock_api.get(f"{MF}/api2/status/nip/{NIP}").respond(
+        200, json=fixture_json("whitelist/status_czynny")
+    )
+    async with httpx.AsyncClient() as http:
+        service = VerificationService(
+            WhiteListClient(http, settings),
+            KrsClient(http, settings),
+            audit=AuditRecorder(audit_store),
+            persistent=False,
+            flatfile=_StaticProvider(flat_index((NIP, NRB))),
+            today=lambda: date(2026, 10, 23),
+        )
+        result = await service.check_bank_account(NIP, NRB)
+
+    assert check.called
+    assert result.assigned is False
+    assert result.via == "api"
+    assert result.warnings == ()
+
+
 async def test_explicit_date_always_uses_the_api(
     ff_service: VerificationService, mock_api: respx.MockRouter, fixture_json: Callable[[str], Any]
 ) -> None:
@@ -791,6 +823,7 @@ async def test_provider_from_blob_store_is_used(
             audit=AuditRecorder(audit_store),
             persistent=False,
             flatfile=FlatFileProvider(blobs),
+            today=lambda: TODAY,
         )
         result = await service.check_bank_account(NIP, NRB)
     assert result.via == "flat_file"
@@ -816,6 +849,7 @@ async def test_provider_without_an_index_falls_back_silently(
             KrsClient(http, settings),
             audit=AuditRecorder(audit_store),
             persistent=False,
+            today=lambda: TODAY,
             flatfile=_StaticProvider(None),
         )
         result = await service.check_bank_account(NIP, NRB)

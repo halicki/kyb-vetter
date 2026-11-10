@@ -30,6 +30,8 @@ from kyb_vetter_core.models import (
 from kyb_vetter_core.sanitize import clean_text
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from kyb_vetter_core.audit import AuditRecorder
     from kyb_vetter_core.clients.protocols import KrsProtocol, WhiteListProtocol
     from kyb_vetter_core.flatfile.index import FlatFileIndex
@@ -316,6 +318,7 @@ class VerificationService:
         *,
         audit: AuditRecorder,
         persistent: bool,
+        today: Callable[[], date],
         flatfile: FlatFileSource | None = None,
         limiter: UserLimiter | None = None,
     ) -> None:
@@ -325,6 +328,7 @@ class VerificationService:
         self._persistent = persistent
         self._flatfile = flatfile
         self._limiter = limiter
+        self._today = today
 
     async def _reserve(self, principal: str, tool: str) -> None:
         """Charge the caller's daily budget (ADR-0019); a no-op without a limiter."""
@@ -474,17 +478,17 @@ class VerificationService:
         self, nip: str, account: str, *, date: date | None
     ) -> BankAccountVerification:
         warnings: list[VerificationWarning] = []
-        if date is None:
-            offline = await self._check_flat_file(nip, account)
+        index = await self._todays_index() if date is None else None
+        if index is not None:
+            offline = self._check_flat_file(index, nip, account)
             if offline is not None:
                 return offline
-            if self._flatfile is not None and await self._flatfile.current() is not None:
-                warnings.append(
-                    VerificationWarning(
-                        code=WARN_FLAT_FILE_MISS,
-                        message="Pair not found in today's flat file; confirmed with the live API instead.",
-                    )
+            warnings.append(
+                VerificationWarning(
+                    code=WARN_FLAT_FILE_MISS,
+                    message="Pair not found in today's flat file; confirmed with the live API instead.",
                 )
+            )
         check = await self._whitelist.check(nip, account, date=date)
         sources = [SourceReceipt.from_receipt(check.receipt)]
         vat_status: VatStatus | None
@@ -514,13 +518,26 @@ class VerificationService:
             sources=tuple(sources),
         )
 
-    async def _check_flat_file(self, nip: str, account: str) -> BankAccountVerification | None:
-        """Positive answers come from the daily file (no quota); misses are not conclusive."""
+    async def _todays_index(self) -> FlatFileIndex | None:
+        """The loaded index when it describes today (Europe/Warsaw), else ``None``.
+
+        The file lists the pairs valid on one day. An older index (before the nightly job,
+        after a failed one) must not confirm a pair for today: the live API answers instead.
+        """
         if self._flatfile is None:
             return None
         index = await self._flatfile.current()
         if index is None:
             return None
+        if index.date != self._today().strftime("%Y%m%d"):
+            logger.info("flat file index is not today's; answering from the live API")
+            return None
+        return index
+
+    def _check_flat_file(
+        self, index: FlatFileIndex, nip: str, account: str
+    ) -> BankAccountVerification | None:
+        """Positive answers come from the daily file (no quota); misses are not conclusive."""
         clean_nip = validate_nip(nip)
         clean_account = validate_bank_account(account)
         match = FlatFileChecker(index).check(clean_nip, clean_account)

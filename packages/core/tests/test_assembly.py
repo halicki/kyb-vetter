@@ -135,15 +135,16 @@ async def test_assembled_service_answers_account_checks_from_the_flat_file(
 
     from kyb_vetter_core.flatfile.index import FlatFileIndex
     from kyb_vetter_core.flatfile.provider import LATEST_KEY, index_key, latest_manifest
-    from kyb_vetter_core.flatfile.testing import ACTIVE_PAIRS, DATE, TRANSFORMATIONS, flat_file_json
+    from kyb_vetter_core.flatfile.testing import ACTIVE_PAIRS, TRANSFORMATIONS, flat_file_json
 
     monkeypatch.setattr(whitelist_module, "today_in_warsaw", lambda: TODAY)
     settings = Settings(
         mf_base_url=MF, krs_base_url=KRS, project_name="unit-test", database_url=None
     )
-    data = flat_file_json()
+    file_date = TODAY.strftime("%Y%m%d")  # the service only trusts an index dated today
+    data = flat_file_json(file_date)
     index = FlatFileIndex.build(
-        date=DATE,
+        date=file_date,
         transformations=TRANSFORMATIONS,
         source_sha512="ab" * 64,
         active=cast("list[str]", data["skrotyPodatnikowCzynnych"]),
