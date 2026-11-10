@@ -116,6 +116,8 @@ module "github_wif" {
   project_id                   = local.project_id
   project_name                 = var.project_name
   github_repo                  = var.github_repo
+  github_environment           = var.environment
+  ref_condition                = "assertion.ref.startsWith(\"refs/tags/v\")"
   runtime_service_account_name = module.run.runtime_service_account_name
 }
 

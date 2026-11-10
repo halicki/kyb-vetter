@@ -1,5 +1,15 @@
 # Keyless deploys from GitHub Actions: the workflow exchanges its OIDC token for the deployer
-# service account through Workload Identity Federation, restricted to one repository.
+# service account through Workload Identity Federation. The token must come from one repository,
+# from a job bound to one GitHub environment, on a ref that environment deploys from (ADR-0025):
+# a job elsewhere in the repository (a test job, another branch) cannot become the deployer.
+locals {
+  attribute_condition = join(" && ", [
+    "assertion.repository == \"${var.github_repo}\"",
+    "assertion.environment == \"${var.github_environment}\"",
+    "(${var.ref_condition})",
+  ])
+}
+
 resource "google_service_account" "deployer" {
   project      = var.project_id
   account_id   = "${var.project_name}-deployer"
@@ -22,8 +32,9 @@ resource "google_iam_workload_identity_pool_provider" "github" {
     "attribute.repository"       = "assertion.repository"
     "attribute.repository_owner" = "assertion.repository_owner"
     "attribute.ref"              = "assertion.ref"
+    "attribute.environment"      = "assertion.environment"
   }
-  attribute_condition = "assertion.repository == \"${var.github_repo}\""
+  attribute_condition = local.attribute_condition
   oidc { issuer_uri = "https://token.actions.githubusercontent.com" }
 }
 
