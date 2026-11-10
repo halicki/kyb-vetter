@@ -30,6 +30,7 @@ acceptance - supersede with a new ADR instead.
 | [0022](0022-retention.md) | Audit retention and housekeeping | Accepted |
 | [0023](0023-production-environment.md) | Production environment | Accepted, amended by 0024 |
 | [0024](0024-single-auth0-tenant.md) | One Auth0 tenant for dev and prod | Accepted |
+| [0025](0025-environment-bound-workload-identity.md) | Environment-bound workload identity for CI | Accepted |
 
 ## Pending decisions
 

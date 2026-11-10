@@ -19,7 +19,34 @@
   the server only verifies tokens (`TokenVerifier`, PRM route). Tasks
   extension, DPoP and `jwt-bearer` remain unimplemented in the SDK.
 
+## Open since the security review (2026-11-10)
+
+- ADR-0025 is half applied until the owner runs `terraform apply` for dev and prod and sets the
+  GitHub environment rules (`infra/terraform/README.md`, "Deploy identity"). Until then the old
+  repository-wide provider condition is live.
+- One user can exhaust the shared white-list quota: the per-user default is 200 `verify_company`
+  calls a day (ADR-0019) but the guard stops all users at 90 `search` calls (ADR-0013), and
+  sign-up is open. Lower `APP_USER_DAILY_LIMIT_VERIFY` well below the pool, or reserve part of
+  the pool per user.
+- Traces are not redacted: httpx client spans carry the full register URL (NIP, account number)
+  to Cloud Trace, and REST request spans carry the path. Logs are redacted (ADR-0021) and
+  `site/privacy.md` says traces are too. Either drop the URL attributes in a span processor or
+  correct the policy text.
+- One runtime service account serves the public services and every job: the public services can
+  write the flat-file bucket (`storage.objectAdmin`) and read the direct database URL. Split into
+  a service account for the services (bucket read, pooled URL) and one for the jobs.
+- GitHub repository: secret scanning, push protection and Dependabot security updates are off;
+  `main` has no protection or ruleset. All are free for a public repository.
+- Some register-originated strings skip `clean_text` (ADR-0012): the registry's error message in
+  tool errors and problem details, and `regon`, `krs`, `account_numbers`, `request_id`. Not
+  attacker-controlled in practice; validate them as digits / bound them for defence in depth.
+- `JwksCache` drops every cached key when a token names an unknown `kid`, so unauthenticated
+  requests can force a JWKS fetch per call. Keep the cache and rate-limit refreshes instead.
+
 ## Closed
+- (2026-11-10) Account checks were answered from a flat-file index of any age (every night until
+  the index job ran, and for days after a failed job), contrary to ADR-0016. The service now uses
+  the index only when it is dated today and falls back to the live API otherwise.
 - (2026-10-30) Prod promoted by tag `v1.0.0` (run `deploy-prod` green); services and jobs run
   the tagged image. The dev Claude connector was re-added on `mcp.dev.<zone>`.
 - (2026-10-22) Python 3.15 wheel availability: all compiled dependencies ship

@@ -109,6 +109,34 @@ a deploy to prod runs when a `v*` tag is pushed (`git tag v1.0.0 && git push ori
   services and jobs, smoke-tests. `main` → dev on every push; `v*` tags → prod. Terraform ignores
   image changes.
 
+## Deploy identity (ADR-0025)
+
+Each project's Workload Identity provider accepts a GitHub token only from this repository, from
+a job bound to the matching GitHub environment, on that environment's ref (`main` for dev, a
+`v*` tag for prod). The GitHub side is set once by hand; it is the human gate and keeps other
+refs from claiming an environment at all:
+
+```sh
+REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+ME=$(gh api user -q .id)
+
+# prod: only v* tags, and a reviewer approves each deploy
+gh api -X PUT "repos/$REPO/environments/prod" --input - <<EOF
+{"reviewers": [{"type": "User", "id": $ME}], "prevent_self_review": false,
+ "deployment_branch_policy": {"protected_branches": false, "custom_branch_policies": true}}
+EOF
+gh api -X POST "repos/$REPO/environments/prod/deployment-branch-policies" -f name='v*' -f type=tag
+
+# dev: only main
+gh api -X PUT "repos/$REPO/environments/dev" --input - <<EOF
+{"deployment_branch_policy": {"protected_branches": false, "custom_branch_policies": true}}
+EOF
+gh api -X POST "repos/$REPO/environments/dev/deployment-branch-policies" -f name=main -f type=branch
+```
+
+Roll-out order after changing the provider condition: apply dev, push to `main` and watch the
+deploy pass the auth step, then apply prod. A wrong condition fails closed at `auth`.
+
 ## Calling the dev service
 
 Once `public = true` is applied, `/health` is public and `/mcp` answers `401` with a
