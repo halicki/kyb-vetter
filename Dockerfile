@@ -23,7 +23,7 @@ COPY apps/worker/ apps/worker/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-editable --package kyb-vetter-mcp --package kyb-vetter-api --package kyb-vetter-worker
 
-FROM python:3.15-slim-trixie@sha256:044d5bd747976e21f8bc4d746c3479b19a84bb8ae6261b802acdd26b29036c93
+FROM python:3.15-slim-trixie@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928
 RUN groupadd --system app && useradd --system --gid app --home /app app \
     && apt-get update && apt-get install -y --no-install-recommends tzdata && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
